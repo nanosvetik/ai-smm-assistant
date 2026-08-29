@@ -1,0 +1,32 @@
+# Secrets
+.env
+.env.local
+*.env
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+**/dist/
+**/build/
+
+# Local data / uploads (self-hosted file storage — see CLAUDE.md)
+uploads/
+data/*.sqlite
+data/*.sqlite-journal
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Scratch
+tmp/
