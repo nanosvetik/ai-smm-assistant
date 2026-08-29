@@ -31,5 +31,8 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Scratch
-tmp/
+# Crash dumps from force-killed processes on Windows
+*.stackdump
+
+# Claude Code local settings (machine-specific, not shared)
+.claude/settings.local.json
