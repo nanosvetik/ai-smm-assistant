@@ -15,8 +15,8 @@ build/
 
 # Local data / uploads (self-hosted file storage — see CLAUDE.md)
 uploads/
-data/*.sqlite
-data/*.sqlite-journal
+data/*
+!data/.gitkeep
 
 # Generated media (smm-mcp output — recreated at runtime via mkdir)
 workspace/
