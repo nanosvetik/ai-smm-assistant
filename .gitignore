@@ -18,6 +18,9 @@ uploads/
 data/*.sqlite
 data/*.sqlite-journal
 
+# Generated media (smm-mcp output — recreated at runtime via mkdir)
+workspace/
+
 # Logs
 *.log
 npm-debug.log*

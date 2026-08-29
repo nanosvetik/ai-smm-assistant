@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "smm-visuals": {
+      "command": "node",
+      "args": ["./smm-mcp/src/index.js"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    }
+  }
+}

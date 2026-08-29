@@ -1,0 +1,16 @@
+{
+  "name": "smm-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server: image and video generation via OpenRouter's dedicated /api/v1/images and /api/v1/videos endpoints.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  }
+}
