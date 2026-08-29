@@ -1,0 +1,13 @@
+{
+  "name": "neuro-smm-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace backend",
+    "build:backend": "npm run build --workspace backend"
+  }
+}
