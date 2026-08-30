@@ -12,8 +12,8 @@ declare global {
   }
 }
 
-// Для эндпоинтов онбординга/дашборда, которые появятся позже — сейчас не
-// используется ни одним роутом, но флоу доступа без него не закончен.
+// Используется онбордингом и эндпоинтами агентов (см. routes/onboarding.ts,
+// routes/agents.ts).
 export async function requireSession(req: Request, res: Response, next: NextFunction) {
   const token = req.cookies?.session;
   if (!token) {

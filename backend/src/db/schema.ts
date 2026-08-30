@@ -91,6 +91,27 @@ export const audienceProfiles = sqliteTable("audience_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента expertise-unpacker («Распаковка экспертности»). Append-only
+// по версиям, тот же принцип, что и audience_profiles. Статусы здесь только
+// боевой/черновик-рамка (без черновик-скелет) — см. YAML-frontmatter в
+// prompts/expertise.md, Фаза 0 не имеет skeleton-ветки, только hard-stop.
+export const expertiseProfiles = sqliteTable("expertise_profiles", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-рамка"] }).notNull(),
+  b2b: integer("b2b", { mode: "boolean" }).notNull().default(false),
+  methodology: text("methodology"),
+  methodStructure: text("method_structure", {
+    enum: ["линейная", "цикл", "слои", "фазы"],
+  }),
+  validationAfter: text("validation_after"),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
 // то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
 // только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.

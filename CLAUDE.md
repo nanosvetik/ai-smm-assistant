@@ -43,10 +43,10 @@
 ## Структура репозитория
 
 ```
-/backend        — Express API, TypeScript, SQLite/Drizzle       [доступ + онбординг + audience-unpacker готовы, см. ниже]
+/backend        — Express API, TypeScript, SQLite/Drizzle       [доступ + онбординг + audience-unpacker + expertise-unpacker готовы, см. ниже]
   /src/db         — схема Drizzle, подключение, миграции
   /src/routes     — HTTP-роуты (access.ts — заявки/сессии, onboarding.ts — данные онбординга, agents.ts — запуск агентов)
-  /src/agents     — оркестрация агентов (audienceUnpacker.ts — контекст из онбординга + вызов OpenRouter + сохранение)
+  /src/agents     — оркестрация агентов (audienceUnpacker.ts, expertiseUnpacker.ts — контекст из онбординга + вызов OpenRouter + сохранение)
   /src/admin      — CLI для ручного подтверждения заявок + общая approve/reject-логика
   /src/telegram   — long-polling бот для уведомлений оператору
   /src/lib        — токены, обёртка над Telegram Bot API, OpenRouter-клиент, парсер YAML-frontmatter
@@ -70,8 +70,9 @@
 - `POST/GET /api/onboarding` — свои соцсети, ссылки конкурентов, опросник (под `requireSession`, пересдача формы перезаписывает предыдущие ссылки/ответы).
 - `POST /api/onboarding/references/:category` — загрузка drag-and-drop референса (multer, disk storage под `/uploads/<client_id>/<category>/`). Категория — параметр маршрута, не multipart-поле: порядок частей в multipart не гарантирован, к моменту `destination`-колбэка текстовое поле после файла может быть ещё не распаршено.
 - `POST/GET /api/agents/audience-unpacker` — запуск `audience-unpacker` (Claude Sonnet 5 через OpenRouter) на данных онбординга клиента; результат парсится (YAML-frontmatter → статус/b2b/ширина ниши/сегменты отдельными колонками) и сохраняется append-only по версиям в `audience_profiles` — повторный запуск не перезаписывает предыдущую версию молча.
+- `POST/GET /api/agents/expertise-unpacker` — тот же паттерн для `expertise-unpacker` (Claude Sonnet 5), с последней версией `audience_profiles` клиента как фоновым контекстом («для кого метод», не цель этой задачи — см. `prompts/expertise.md`, Шаг 0.3). Результат — append-only в `expertise_profiles` (статус/b2b/методология/структура метода отдельными колонками, статусы только `боевой`/`черновик-рамка`, без skeleton-варианта).
 
-Ещё не реализовано: `expertise-unpacker` и остальные 8 агентов из таблицы ниже, контент-план, гейт подтверждения перед медиа-генерацией, экспорт, results-ссылка, весь фронтенд.
+Ещё не реализовано: остальные 8 агентов из таблицы ниже, контент-план, гейт подтверждения перед медиа-генерацией, экспорт, results-ссылка, весь фронтенд.
 
 ### Известные грабли (чтобы не наступать повторно)
 
@@ -96,7 +97,7 @@
 | reels-writer | DeepSeek V4 |
 | editor-in-chief | DeepSeek V4 Pro |
 
-`audience-unpacker` подключён и проверен живым вызовом (см. «Текущее состояние бэкенда» выше); остальные девять — ещё нет. `expertise-unpacker` следующий по плану — тот же паттерн (`backend/src/lib/openrouter.ts` + `frontmatter.ts` уже переиспользуемые), промпт (`prompts/expertise.md`) уже приведён к автономному режиму.
+`audience-unpacker` и `expertise-unpacker` подключены и проверены живыми вызовами (см. «Текущее состояние бэкенда» выше); остальные восемь — ещё нет. `account-analyzer` следующий по плану (первый агент на DeepSeek V4 — ещё не проверялось, что тот же паттерн вызова OpenRouter работает с этим провайдером так же гладко, как с Claude).
 
 **Структура кода агента, зафиксированная решением в этой сессии:** промпт (`prompts/*.md`) и код-оркестрация (`backend/src/agents/*.ts`) — раздельно, не колокация в одну папку на агента. Промпты изначально самостоятельные документы (эксперт может подгрузить их и в любую другую нейросеть напрямую, не только в этот продукт), это не только деталь реализации бэкенда.
 
