@@ -3,11 +3,12 @@ import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, expertiseProfiles, packagingProfiles, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, expertiseProfiles, packagingProfiles, profileHeaderProfiles, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
 import { CompetitorLinksMissingError, runCompetitorAnalyzer } from "../agents/competitorAnalyzer.js";
+import { OwnLinksMissingError as ProfileHeaderOwnLinksMissingError, runProfileHeaderAnalyzer } from "../agents/profileHeaderAnalyzer.js";
 import { PrerequisitesMissingError, runAccountPackager } from "../agents/accountPackager.js";
 import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, runContentPlanner } from "../agents/contentPlanner.js";
 import { PlatformNotInPlanError, PrerequisitesMissingError as CopywriterPrerequisitesMissingError, runCopywriter } from "../agents/copywriter.js";
@@ -141,6 +142,41 @@ agentsRouter.get("/agents/account-analyzer", async (req, res) => {
     .from(accountStyleProfiles)
     .where(eq(accountStyleProfiles.clientId, req.clientId!))
     .orderBy(desc(accountStyleProfiles.version))
+    .limit(1);
+
+  if (!profile) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(profile);
+});
+
+// Запуск profile-header-analyzer — реальный платный вызов OpenRouter (Claude
+// Sonnet 5, vision) поверх аватара/обложки/описания own-площадок клиента.
+// Новый агент сверх исходной таблицы, независим от остальных (нужны только
+// own-ссылки с онбординга) — опциональный вход для account-packager,
+// см. раздел 9 спецификации.
+agentsRouter.post("/agents/profile-header-analyzer", async (req, res) => {
+  try {
+    const profile = await runProfileHeaderAnalyzer(req.clientId!);
+    res.status(201).json(profile);
+  } catch (err) {
+    if (err instanceof ProfileHeaderOwnLinksMissingError) {
+      res.status(400).json({ error: "own_links_missing" });
+      return;
+    }
+    console.error("[agents] profile-header-analyzer failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая версия Аудита шапки профиля клиента.
+agentsRouter.get("/agents/profile-header-analyzer", async (req, res) => {
+  const [profile] = await db
+    .select()
+    .from(profileHeaderProfiles)
+    .where(eq(profileHeaderProfiles.clientId, req.clientId!))
+    .orderBy(desc(profileHeaderProfiles.version))
     .limit(1);
 
   if (!profile) {

@@ -13,3 +13,12 @@ export interface ParsedPost {
   url: string;
   engagement: PostEngagement;
 }
+
+// Шапка профиля — для аудита оформления (profile-header-analyzer), не для
+// анализа контента. coverUrl — только VK, у Telegram-канала нет обложки.
+export interface ProfileHeader {
+  name?: string;
+  avatarUrl?: string;
+  coverUrl?: string;
+  description?: string;
+}

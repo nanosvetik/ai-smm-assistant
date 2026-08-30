@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import type { ParsedPost } from "./types.js";
+import type { ParsedPost, ProfileHeader } from "./types.js";
 
 // Публичное веб-превью, не Bot API — свой канал разбираем так же, как чужой
 // канал конкурента, у которого бот не является админом. См. раздел 3
@@ -50,4 +50,25 @@ export async function fetchTelegramPosts(channelUrl: string, limit = 20): Promis
   // Страница превью отдаёт посты в порядке от старых к новым — разворачиваем,
   // чтобы порядок совпадал с VK wall.get (там новые уже первыми).
   return posts.slice(-limit).reverse();
+}
+
+// У Telegram-канала нет обложки (coverUrl), только круглый аватар — в
+// отличие от ВК-сообщества. Аватар лежит как <img> внутри <i
+// class="tgme_page_photo_image">, не отдельным полем API (публичного Bot
+// API для чужого канала здесь нет, только HTML-превью — см. Шаг 1 в
+// prompts/... и обоснование в разделе 3 спецификации).
+export async function fetchTelegramProfileHeader(channelUrl: string): Promise<ProfileHeader> {
+  const channel = extractChannel(channelUrl);
+  const res = await fetch(`https://t.me/s/${channel}`);
+  if (!res.ok) {
+    throw new Error(`Telegram preview request failed (${res.status}) for channel "${channel}"`);
+  }
+  const html = await res.text();
+  const $ = cheerio.load(html);
+
+  return {
+    name: $(".tgme_channel_info_header_title").first().text().trim() || undefined,
+    avatarUrl: $(".tgme_page_photo_image img").first().attr("src"),
+    description: $(".tgme_channel_info_description").first().text().trim() || undefined,
+  };
 }

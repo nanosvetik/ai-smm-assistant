@@ -130,6 +130,26 @@ export const accountStyleProfiles = sqliteTable("account_style_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента profile-header-analyzer («Аудит шапки профиля») — новый
+// агент сверх исходной таблицы раздела 4 (см. раздел 9 спецификации).
+// Фактологический разбор аватара/обложки/описания реального профиля клиента
+// (не постов) vision-моделью — используется account-packager для
+// заземлённого «Аудита профиля» вместо чисто умозрительных рекомендаций.
+// Append-only по версиям, статус — чисто механический: удалось ли получить
+// хотя бы один аватар, не качественная оценка модели (в отличие от
+// visual-style-analyzer).
+export const profileHeaderProfiles = sqliteTable("profile_header_profiles", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-скелет"] }).notNull(),
+  platforms: text("platforms").notNull(),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Результат агента visual-style-analyzer («Визуальный style-профиль») —
 // добавлен в этой сессии, не входил в исходную таблицу агентов раздела 4
 // спецификации (см. "Архитектурное решение этой сессии" в разделе 9).
@@ -185,6 +205,9 @@ export const packagingProfiles = sqliteTable("packaging_profiles", {
   audienceProfileVersion: integer("audience_profile_version").notNull(),
   expertiseProfileVersion: integer("expertise_profile_version").notNull(),
   accountStyleProfileVersion: integer("account_style_profile_version").notNull(),
+  // null, если клиент/агент ещё не прогнал profile-header-analyzer — тогда
+  // "Аудит профиля" строится по-старому, только из умозрительных выводов.
+  profileHeaderProfileVersion: integer("profile_header_profile_version"),
   documentMarkdown: text("document_markdown").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });

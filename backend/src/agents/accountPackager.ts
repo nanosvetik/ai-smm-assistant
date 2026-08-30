@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, expertiseProfiles, packagingProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, expertiseProfiles, packagingProfiles, profileHeaderProfiles } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
@@ -25,7 +25,8 @@ export class PrerequisitesMissingError extends Error {
 function buildContext(
   audience: typeof audienceProfiles.$inferSelect,
   expertise: typeof expertiseProfiles.$inferSelect,
-  accountStyle: typeof accountStyleProfiles.$inferSelect
+  accountStyle: typeof accountStyleProfiles.$inferSelect,
+  profileHeader: typeof profileHeaderProfiles.$inferSelect | undefined
 ): string {
   return `# Профиль ЦА (статус: ${audience.status})
 ${audience.documentMarkdown}
@@ -35,6 +36,13 @@ ${expertise.documentMarkdown}
 
 # Анализ своего аккаунта (статус: ${accountStyle.status})
 ${accountStyle.documentMarkdown}
+
+# Аудит шапки профиля
+${
+  profileHeader
+    ? `(статус: ${profileHeader.status})\n${profileHeader.documentMarkdown}`
+    : "не создан — реальный профиль клиента не анализировался, Шаг 4 строится без сравнения с фактом."
+}
 `;
 }
 
@@ -61,6 +69,15 @@ export async function runAccountPackager(clientId: string) {
     .where(eq(accountStyleProfiles.clientId, clientId))
     .orderBy(desc(accountStyleProfiles.version))
     .limit(1);
+  // Опциональный вход — в отличие от трёх выше, его отсутствие не блокирует
+  // упаковку и не понижает статус: без него Шаг 4 просто работает по-старому,
+  // без сравнения с фактическим видом профиля (см. "Честность статусов").
+  const [profileHeader] = await db
+    .select()
+    .from(profileHeaderProfiles)
+    .where(eq(profileHeaderProfiles.clientId, clientId))
+    .orderBy(desc(profileHeaderProfiles.version))
+    .limit(1);
 
   const missing: string[] = [];
   if (!audience) missing.push("audience-unpacker");
@@ -71,7 +88,7 @@ export async function runAccountPackager(clientId: string) {
   }
 
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
-  const userMessage = buildContext(audience, expertise, accountStyle);
+  const userMessage = buildContext(audience, expertise, accountStyle, profileHeader);
 
   const rawDocument = await chatCompletion(MODEL, [
     { role: "system", content: systemPrompt },
@@ -103,6 +120,7 @@ export async function runAccountPackager(clientId: string) {
     audienceProfileVersion: audience.version,
     expertiseProfileVersion: expertise.version,
     accountStyleProfileVersion: accountStyle.version,
+    profileHeaderProfileVersion: profileHeader?.version ?? null,
     documentMarkdown: document,
     createdAt: now,
   });

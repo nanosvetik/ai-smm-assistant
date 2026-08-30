@@ -85,6 +85,13 @@
       "when": 1788119830677,
       "tag": "0011_strong_stephen_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1788122330948,
+      "tag": "0012_green_chimera",
+      "breakpoints": true
     }
   ]
 }

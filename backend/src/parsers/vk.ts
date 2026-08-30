@@ -1,4 +1,4 @@
-import type { ParsedPost } from "./types.js";
+import type { ParsedPost, ProfileHeader } from "./types.js";
 
 const VK_API_VERSION = "5.199";
 
@@ -57,4 +57,57 @@ export async function fetchVkPosts(communityUrl: string, count = 20): Promise<Pa
         reposts: item.reposts?.count,
       },
     }));
+}
+
+interface VkCover {
+  enabled: number;
+  images: Array<{ url: string; width: number; height: number }>;
+}
+
+interface VkGroupsGetByIdResponse {
+  response?: {
+    groups: Array<{
+      name: string;
+      description?: string;
+      photo_max?: string;
+      cover?: VkCover;
+    }>;
+  };
+  error?: { error_code: number; error_msg: string };
+}
+
+// Обложка нужна только для превью в vision-анализе — берём среднеразмерный
+// вариант (не самый большой из images, экономим токены на бессмысленном
+// разрешении), с фолбэком на самый маленький, если меньше подходящих нет.
+function pickCoverUrl(cover: VkCover | undefined): string | undefined {
+  if (!cover?.enabled || cover.images.length === 0) return undefined;
+  const midSized = cover.images.filter((img) => img.width <= 800);
+  return (midSized.at(-1) ?? cover.images[0]).url;
+}
+
+export async function fetchVkProfileHeader(communityUrl: string): Promise<ProfileHeader> {
+  const token = process.env.VK_SERVICE_TOKEN;
+  if (!token) throw new Error("VK_SERVICE_TOKEN is not set");
+
+  const domain = extractDomain(communityUrl);
+  const params = new URLSearchParams({
+    group_id: domain,
+    fields: "cover,description,photo_max",
+    v: VK_API_VERSION,
+    access_token: token,
+  });
+
+  const res = await fetch(`https://api.vk.com/method/groups.getById?${params}`);
+  const json = (await res.json()) as VkGroupsGetByIdResponse;
+  if (json.error) {
+    throw new Error(`VK API groups.getById failed (${json.error.error_code}): ${json.error.error_msg}`);
+  }
+
+  const group = json.response?.groups[0];
+  return {
+    name: group?.name,
+    avatarUrl: group?.photo_max,
+    coverUrl: pickCoverUrl(group?.cover),
+    description: group?.description,
+  };
 }
