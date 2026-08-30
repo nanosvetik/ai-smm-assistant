@@ -14,6 +14,7 @@ import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, r
 import { PlatformNotInPlanError, PrerequisitesMissingError as CopywriterPrerequisitesMissingError, runCopywriter } from "../agents/copywriter.js";
 import { ReferencesMissingError, runVisualStyleAnalyzer } from "../agents/visualStyleAnalyzer.js";
 import { PrerequisitesMissingError as VisualGeneratorPrerequisitesMissingError, runVisualGenerator } from "../agents/visualGenerator.js";
+import { runFullPipeline } from "../agents/pipeline.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -396,4 +397,22 @@ agentsRouter.get("/agents/visual-generator", async (req, res) => {
     return;
   }
   res.json(prompt);
+});
+
+// Запускает весь текстовый пайплайн разом (кнопка «Запустить анализ» на
+// онбординге, раздел 6 спецификации) — независимые агенты параллельно,
+// дальше по зависимостям, до готовых промптов для картинок включительно.
+// Каждый этап пишет свой результат в БД сам по себе (как и при отдельном
+// вызове), эта ручка не хранит собственного состояния — можно звать
+// заново после исправления причины сбоя, старые версии не трогает.
+// Ответ 200 даже при частичном сбое: то, что реально произошло на каждом
+// этапе, — предметная информация для фронтенда, не серверная ошибка.
+agentsRouter.post("/agents/run-all", async (req, res) => {
+  try {
+    const result = await runFullPipeline(req.clientId!);
+    res.json(result);
+  } catch (err) {
+    console.error("[agents] run-all failed unexpectedly:", err);
+    res.status(500).json({ error: "pipeline_failed" });
+  }
 });
