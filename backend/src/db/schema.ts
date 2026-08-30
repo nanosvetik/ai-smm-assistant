@@ -148,6 +148,26 @@ export const competitorAnalysisProfiles = sqliteTable("competitor_analysis_profi
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента account-packager («Упаковка профиля»). Append-only по
+// версиям. Статус наследуется от самого слабого из трёх входных документов
+// (аудитория/экспертность/стиль), не выбирается моделью самостоятельно — см.
+// buildStatus в backend/src/agents/accountPackager.ts. Версии входов
+// зафиксированы для трассировки: если позже кто-то из unpacker'ов
+// перезапустится, видно, на каких именно версиях строилась эта упаковка.
+export const packagingProfiles = sqliteTable("packaging_profiles", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-рамка", "черновик-скелет"] }).notNull(),
+  audienceProfileVersion: integer("audience_profile_version").notNull(),
+  expertiseProfileVersion: integer("expertise_profile_version").notNull(),
+  accountStyleProfileVersion: integer("account_style_profile_version").notNull(),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
 // то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
 // только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.

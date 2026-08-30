@@ -2,11 +2,12 @@ import { Router } from "express";
 import { desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, expertiseProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, expertiseProfiles, packagingProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
 import { CompetitorLinksMissingError, runCompetitorAnalyzer } from "../agents/competitorAnalyzer.js";
+import { PrerequisitesMissingError, runAccountPackager } from "../agents/accountPackager.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -135,6 +136,40 @@ agentsRouter.get("/agents/account-analyzer", async (req, res) => {
     .from(accountStyleProfiles)
     .where(eq(accountStyleProfiles.clientId, req.clientId!))
     .orderBy(desc(accountStyleProfiles.version))
+    .limit(1);
+
+  if (!profile) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(profile);
+});
+
+// Запуск account-packager — реальный платный вызов OpenRouter (DeepSeek V4
+// Flash) поверх результатов audience-unpacker, expertise-unpacker и
+// account-analyzer. Требует все три — это синтез поверх готового, не анализ
+// с нуля (см. prompts/account-packager.md).
+agentsRouter.post("/agents/account-packager", async (req, res) => {
+  try {
+    const profile = await runAccountPackager(req.clientId!);
+    res.status(201).json(profile);
+  } catch (err) {
+    if (err instanceof PrerequisitesMissingError) {
+      res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    console.error("[agents] account-packager failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая версия Упаковки профиля клиента.
+agentsRouter.get("/agents/account-packager", async (req, res) => {
+  const [profile] = await db
+    .select()
+    .from(packagingProfiles)
+    .where(eq(packagingProfiles.clientId, req.clientId!))
+    .orderBy(desc(packagingProfiles.version))
     .limit(1);
 
   if (!profile) {
