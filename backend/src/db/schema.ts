@@ -168,6 +168,23 @@ export const packagingProfiles = sqliteTable("packaging_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента content-planner («Контент-план на 2 недели»). Append-only
+// по версиям. Статус наследуется от самого слабого из двух входов (упаковка
+// профиля / анализ конкурентов), тем же принципом, что и packaging_profiles.
+// Версии обоих входов зафиксированы для трассировки.
+export const contentPlans = sqliteTable("content_plans", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-рамка", "черновик-скелет"] }).notNull(),
+  packagingProfileVersion: integer("packaging_profile_version").notNull(),
+  competitorAnalysisProfileVersion: integer("competitor_analysis_profile_version").notNull(),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
 // то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
 // только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.

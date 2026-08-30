@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accountStyleProfiles, audienceProfiles, expertiseProfiles, packagingProfiles } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
+import { replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 
 const MODEL = "deepseek/deepseek-v4-flash";
@@ -39,16 +40,6 @@ ${accountStyle.documentMarkdown}
 
 function weakestStatus(statuses: Status[]): Status {
   return statuses.reduce((weakest, s) => (STATUS_RANK[s] < STATUS_RANK[weakest] ? s : weakest));
-}
-
-// Статус выставляет код (weakestStatus), не модель — переписываем строку в
-// её собственном YAML-frontmatter, чтобы сохранённый документ не расходился
-// с колонкой status в БД (см. "Честность статусов" в промпте).
-function patchStatus(document: string, status: Status): string {
-  const match = document.match(/---\s*\n([\s\S]*?)\n---/);
-  if (!match) return document;
-  const patchedBlock = match[1].replace(/статус:\s*\S+/, `статус: ${status}`);
-  return document.replace(match[1], patchedBlock);
 }
 
 export async function runAccountPackager(clientId: string) {
@@ -92,7 +83,7 @@ export async function runAccountPackager(clientId: string) {
     expertise.status as Status,
     accountStyle.status as Status,
   ]);
-  const document = patchStatus(rawDocument, status);
+  const document = replaceFrontmatterField(rawDocument, "статус", status);
 
   const [latest] = await db
     .select({ version: packagingProfiles.version })

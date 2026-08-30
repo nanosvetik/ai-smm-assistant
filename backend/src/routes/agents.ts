@@ -2,12 +2,13 @@ import { Router } from "express";
 import { desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, expertiseProfiles, packagingProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, expertiseProfiles, packagingProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
 import { CompetitorLinksMissingError, runCompetitorAnalyzer } from "../agents/competitorAnalyzer.js";
 import { PrerequisitesMissingError, runAccountPackager } from "../agents/accountPackager.js";
+import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, runContentPlanner } from "../agents/contentPlanner.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -177,4 +178,38 @@ agentsRouter.get("/agents/account-packager", async (req, res) => {
     return;
   }
   res.json(profile);
+});
+
+// Запуск content-planner — реальный платный вызов OpenRouter (DeepSeek V4
+// Flash) поверх Упаковки профиля и Анализа конкурентов. Требует оба — план
+// строится на пересечении подтверждённого в нише и того, что органично
+// методу и стилю эксперта (см. prompts/content-planner.md).
+agentsRouter.post("/agents/content-planner", async (req, res) => {
+  try {
+    const plan = await runContentPlanner(req.clientId!);
+    res.status(201).json(plan);
+  } catch (err) {
+    if (err instanceof ContentPlannerPrerequisitesMissingError) {
+      res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    console.error("[agents] content-planner failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая версия Контент-плана клиента.
+agentsRouter.get("/agents/content-planner", async (req, res) => {
+  const [plan] = await db
+    .select()
+    .from(contentPlans)
+    .where(eq(contentPlans.clientId, req.clientId!))
+    .orderBy(desc(contentPlans.version))
+    .limit(1);
+
+  if (!plan) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(plan);
 });
