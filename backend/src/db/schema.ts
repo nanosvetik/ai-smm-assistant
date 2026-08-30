@@ -130,6 +130,27 @@ export const accountStyleProfiles = sqliteTable("account_style_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента visual-style-analyzer («Визуальный style-профиль») —
+// добавлен в этой сессии, не входил в исходную таблицу агентов раздела 4
+// спецификации (см. "Архитектурное решение этой сессии" в разделе 9).
+// Анализирует загруженные на онбординге drag-and-drop референсы (не посты)
+// vision-моделью, чтобы у visual-generator был устойчивый визуальный стиль
+// клиента, а не разрозненные генерации от раза к разу. Append-only по
+// версиям, статусы боевой/черновик-скелет тем же принципом, что и
+// account_style_profiles.
+export const visualStyleProfiles = sqliteTable("visual_style_profiles", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-скелет"] }).notNull(),
+  referencesAnalyzed: integer("references_analyzed").notNull(),
+  categories: text("categories").notNull(),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Результат агента competitor-analyzer («Анализ конкурентов»). Append-only по
 // версиям, тот же принцип, что и account_style_profiles. Статусы боевой
 // (2+ конкурента с пригодными для ранжирования постами) / черновик-скелет

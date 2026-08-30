@@ -1,8 +1,21 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
+// content как массив блоков — для мультимодальных сообщений (vision), см.
+// backend/src/agents/visualStyleAnalyzer.ts. Формат совместим с OpenAI chat
+// completions image_url (data: URI или публичный HTTP(S) URL).
+export interface TextContentBlock {
+  type: "text";
+  text: string;
+}
+
+export interface ImageContentBlock {
+  type: "image_url";
+  image_url: { url: string };
+}
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | Array<TextContentBlock | ImageContentBlock>;
 }
 
 export async function chatCompletion(model: string, messages: ChatMessage[]): Promise<string> {

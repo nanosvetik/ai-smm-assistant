@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, expertiseProfiles, packagingProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, expertiseProfiles, packagingProfiles, visualStyleProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
@@ -11,6 +11,7 @@ import { CompetitorLinksMissingError, runCompetitorAnalyzer } from "../agents/co
 import { PrerequisitesMissingError, runAccountPackager } from "../agents/accountPackager.js";
 import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, runContentPlanner } from "../agents/contentPlanner.js";
 import { PrerequisitesMissingError as CopywriterPrerequisitesMissingError, runCopywriter } from "../agents/copywriter.js";
+import { ReferencesMissingError, runVisualStyleAnalyzer } from "../agents/visualStyleAnalyzer.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -266,4 +267,39 @@ agentsRouter.get("/agents/copywriter", async (req, res) => {
     return;
   }
   res.json(post);
+});
+
+// Запуск visual-style-analyzer — реальный платный вызов OpenRouter
+// (DeepSeek V4 Flash Vision Exp) поверх drag-and-drop референсов клиента.
+// Разовый анализ визуальной айдентики, не входил в исходную таблицу
+// агентов (см. раздел 9 спецификации) — добавлен вместе с планированием
+// visual-generator, чтобы генерации держали единый стиль от раза к разу.
+agentsRouter.post("/agents/visual-style-analyzer", async (req, res) => {
+  try {
+    const profile = await runVisualStyleAnalyzer(req.clientId!);
+    res.status(201).json(profile);
+  } catch (err) {
+    if (err instanceof ReferencesMissingError) {
+      res.status(400).json({ error: "references_missing" });
+      return;
+    }
+    console.error("[agents] visual-style-analyzer failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая версия Визуального style-профиля клиента.
+agentsRouter.get("/agents/visual-style-analyzer", async (req, res) => {
+  const [profile] = await db
+    .select()
+    .from(visualStyleProfiles)
+    .where(eq(visualStyleProfiles.clientId, req.clientId!))
+    .orderBy(desc(visualStyleProfiles.version))
+    .limit(1);
+
+  if (!profile) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(profile);
 });
