@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, expertiseProfiles, packagingProfiles, visualStyleProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, expertiseProfiles, packagingProfiles, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
@@ -12,6 +12,7 @@ import { PrerequisitesMissingError, runAccountPackager } from "../agents/account
 import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, runContentPlanner } from "../agents/contentPlanner.js";
 import { PrerequisitesMissingError as CopywriterPrerequisitesMissingError, runCopywriter } from "../agents/copywriter.js";
 import { ReferencesMissingError, runVisualStyleAnalyzer } from "../agents/visualStyleAnalyzer.js";
+import { PrerequisitesMissingError as VisualGeneratorPrerequisitesMissingError, runVisualGenerator } from "../agents/visualGenerator.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -269,11 +270,12 @@ agentsRouter.get("/agents/copywriter", async (req, res) => {
   res.json(post);
 });
 
-// Запуск visual-style-analyzer — реальный платный вызов OpenRouter
-// (DeepSeek V4 Flash Vision Exp) поверх drag-and-drop референсов клиента.
-// Разовый анализ визуальной айдентики, не входил в исходную таблицу
-// агентов (см. раздел 9 спецификации) — добавлен вместе с планированием
-// visual-generator, чтобы генерации держали единый стиль от раза к разу.
+// Запуск visual-style-analyzer — реальный платный вызов OpenRouter (Claude
+// Sonnet 5 — vision-задача над потенциально личными фото клиента, не
+// публичным контентом) поверх drag-and-drop референсов клиента. Разовый
+// анализ визуальной айдентики, не входил в исходную таблицу агентов (см.
+// раздел 9 спецификации) — добавлен вместе с планированием visual-generator,
+// чтобы генерации держали единый стиль от раза к разу.
 agentsRouter.post("/agents/visual-style-analyzer", async (req, res) => {
   try {
     const profile = await runVisualStyleAnalyzer(req.clientId!);
@@ -302,4 +304,56 @@ agentsRouter.get("/agents/visual-style-analyzer", async (req, res) => {
     return;
   }
   res.json(profile);
+});
+
+const visualGeneratorRequestSchema = z.object({ platform: z.enum(["telegram", "vk"]) });
+
+// Запуск visual-generator — реальный платный вызов OpenRouter (DeepSeek V4
+// Flash: вход тут уже текст, а не картинки, vision не нужен) поверх
+// последнего поста copywriter для площадки + Визуального style-профиля
+// (если есть). Пишет только промпт для generate_image — сам дорогой вызов
+// generate_image происходит отдельно, по подтверждению пользователя (см.
+// раздел 3 Шаг 4 спецификации, гейт ещё не реализован).
+agentsRouter.post("/agents/visual-generator", async (req, res) => {
+  const parsed = visualGeneratorRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const prompt = await runVisualGenerator(req.clientId!, parsed.data.platform);
+    res.status(201).json(prompt);
+  } catch (err) {
+    if (err instanceof VisualGeneratorPrerequisitesMissingError) {
+      res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    console.error("[agents] visual-generator failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+const visualGeneratorQuerySchema = z.object({ platform: z.enum(["telegram", "vk"]) });
+
+// Последняя (по номеру версии) сохранённая версия промпта для указанной площадки.
+agentsRouter.get("/agents/visual-generator", async (req, res) => {
+  const parsed = visualGeneratorQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", details: parsed.error.flatten() });
+    return;
+  }
+
+  const [prompt] = await db
+    .select()
+    .from(visualGeneratorPrompts)
+    .where(and(eq(visualGeneratorPrompts.clientId, req.clientId!), eq(visualGeneratorPrompts.platform, parsed.data.platform)))
+    .orderBy(desc(visualGeneratorPrompts.version))
+    .limit(1);
+
+  if (!prompt) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(prompt);
 });

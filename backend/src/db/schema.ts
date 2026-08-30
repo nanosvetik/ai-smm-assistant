@@ -226,6 +226,29 @@ export const copywriterPosts = sqliteTable("copywriter_posts", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента visual-generator — промпт для generate_image (сам вызов
+// generate_image, дорогая операция, происходит отдельно и только по
+// подтверждению пользователя — не здесь, см. раздел 3 Шаг 4 спецификации).
+// Append-only по версиям, версия считается отдельно на каждую площадку, тем
+// же принципом, что и copywriter_posts. visualStyleProfileVersion — null,
+// если клиент не загрузил референсы (у visual-style-analyzer нечего было
+// анализировать) — тогда промпт написан по нейтральному дефолту, см.
+// usedVisualProfile и prompts/visual-generator.md, "Вход".
+export const visualGeneratorPrompts = sqliteTable("visual_generator_prompts", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  platform: text("platform", { enum: ["telegram", "vk"] }).notNull(),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-рамка", "черновик-скелет"] }).notNull(),
+  usedVisualProfile: integer("used_visual_profile", { mode: "boolean" }).notNull(),
+  copywriterPostVersion: integer("copywriter_post_version").notNull(),
+  visualStyleProfileVersion: integer("visual_style_profile_version"),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
 // то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
 // только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.
