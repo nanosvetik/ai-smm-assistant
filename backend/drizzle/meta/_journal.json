@@ -15,6 +15,13 @@
       "when": 1788077349361,
       "tag": "0001_lean_speedball",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788078112238,
+      "tag": "0002_flat_umar",
+      "breakpoints": true
     }
   ]
 }

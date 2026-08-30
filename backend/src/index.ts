@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { accessRouter } from "./routes/access.js";
 import { onboardingRouter } from "./routes/onboarding.js";
+import { agentsRouter } from "./routes/agents.js";
 import { startTelegramBot } from "./telegram/bot.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,6 +21,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api", accessRouter);
 app.use("/api", onboardingRouter);
+app.use("/api", agentsRouter);
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 app.listen(PORT, () => {

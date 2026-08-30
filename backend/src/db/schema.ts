@@ -71,6 +71,26 @@ export const onboardingProfiles = sqliteTable("onboarding_profiles", {
   submittedAt: integer("submitted_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента audience-unpacker («Профиль ЦА»). Append-only по версиям —
+// повторный запуск не перезаписывает существующую запись молча (см. раздел 3
+// спецификации и автономный режим в prompts/target-audience.md). Статусные
+// поля дублируют YAML-frontmatter документа как отдельные колонки — нужны
+// для честных бейджей в UI (боевой/черновик-*), не только для чтения текста.
+export const audienceProfiles = sqliteTable("audience_profiles", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-рамка", "черновик-скелет"] }).notNull(),
+  b2b: integer("b2b", { mode: "boolean" }).notNull().default(false),
+  nicheWidth: text("niche_width", { enum: ["широкая", "средняя", "узкая"] }),
+  segments: text("segments"),
+  validationAfter: text("validation_after"),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
 // то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
 // только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.
