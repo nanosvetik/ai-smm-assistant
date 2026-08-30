@@ -192,7 +192,11 @@ export const packagingProfiles = sqliteTable("packaging_profiles", {
 // Результат агента content-planner («Контент-план на 2 недели»). Append-only
 // по версиям. Статус наследуется от самого слабого из двух входов (упаковка
 // профиля / анализ конкурентов), тем же принципом, что и packaging_profiles.
-// Версии обоих входов зафиксированы для трассировки.
+// Версии обоих входов зафиксированы для трассировки. platforms — ровно те
+// площадки, что реально есть у клиента (own-ссылки на онбординге), не
+// обязательно обе: план и демо строятся только под них, см. Шаг 2/3 в
+// prompts/content-planner.md. Проверяется дальше в copywriter.ts, чтобы
+// нельзя было сгенерировать пост для площадки, которой у клиента нет.
 export const contentPlans = sqliteTable("content_plans", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -200,6 +204,7 @@ export const contentPlans = sqliteTable("content_plans", {
     .references(() => clients.id),
   version: integer("version").notNull(),
   status: text("status", { enum: ["боевой", "черновик-рамка", "черновик-скелет"] }).notNull(),
+  platforms: text("platforms").notNull(),
   packagingProfileVersion: integer("packaging_profile_version").notNull(),
   competitorAnalysisProfileVersion: integer("competitor_analysis_profile_version").notNull(),
   documentMarkdown: text("document_markdown").notNull(),

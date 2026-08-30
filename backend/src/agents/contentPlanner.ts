@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { competitorAnalysisProfiles, contentPlans, packagingProfiles } from "../db/schema.js";
+import { competitorAnalysisProfiles, contentPlans, packagingProfiles, socialLinks } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
@@ -22,10 +22,15 @@ export class PrerequisitesMissingError extends Error {
 }
 
 function buildContext(
+  platforms: string[],
   packaging: typeof packagingProfiles.$inferSelect,
   competitorAnalysis: typeof competitorAnalysisProfiles.$inferSelect
 ): string {
-  return `# Упаковка профиля (статус: ${packaging.status})
+  const platformLabels = platforms.map((p) => (p === "telegram" ? "Telegram" : "ВК")).join(", ");
+  return `# Площадки клиента
+${platformLabels}
+
+# Упаковка профиля (статус: ${packaging.status})
 ${packaging.documentMarkdown}
 
 # Анализ конкурентов (статус: ${competitorAnalysis.status})
@@ -51,15 +56,26 @@ export async function runContentPlanner(clientId: string) {
     .orderBy(desc(competitorAnalysisProfiles.version))
     .limit(1);
 
+  // Источник платформ — реальные own-ссылки с онбординга, не
+  // account_style_profiles.platforms: там могли выпасть площадки, где
+  // парсер не нашёл постов, хотя клиент их всё равно указал и хочет план
+  // именно под них (см. обсуждение "что если у клиента одна соцсеть").
+  const ownLinks = await db
+    .select()
+    .from(socialLinks)
+    .where(and(eq(socialLinks.clientId, clientId), eq(socialLinks.role, "own")));
+  const platforms = [...new Set(ownLinks.map((l) => l.platform))];
+
   const missing: string[] = [];
   if (!packaging) missing.push("account-packager");
   if (!competitorAnalysis) missing.push("competitor-analyzer");
+  if (platforms.length === 0) missing.push("onboarding-own-links");
   if (missing.length > 0 || !packaging || !competitorAnalysis) {
     throw new PrerequisitesMissingError(missing);
   }
 
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
-  const userMessage = buildContext(packaging, competitorAnalysis);
+  const userMessage = buildContext(platforms, packaging, competitorAnalysis);
 
   const rawDocument = await chatCompletion(MODEL, [
     { role: "system", content: systemPrompt },
@@ -84,6 +100,7 @@ export async function runContentPlanner(clientId: string) {
     clientId,
     version: nextVersion,
     status,
+    platforms: JSON.stringify(platforms),
     packagingProfileVersion: packaging.version,
     competitorAnalysisProfileVersion: competitorAnalysis.version,
     documentMarkdown: document,

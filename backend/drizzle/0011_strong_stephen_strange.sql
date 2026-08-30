@@ -1,0 +1,1 @@
+ALTER TABLE `content_plans` ADD `platforms` text NOT NULL;

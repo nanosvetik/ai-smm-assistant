@@ -22,6 +22,17 @@ export class PrerequisitesMissingError extends Error {
   }
 }
 
+// У клиента может быть только одна площадка (см. content-planner — план
+// строится только под реальные own-ссылки клиента). Без этой проверки
+// copywriter согласился бы писать пост под площадку, для которой в плане
+// нет ни темы, ни заголовка, и либо вежливо отказался бы сам, либо
+// сфантазировал бы что-то не по плану — оба варианта хуже явной ошибки.
+export class PlatformNotInPlanError extends Error {
+  constructor(public platform: Platform) {
+    super("platform_not_in_plan");
+  }
+}
+
 function buildContext(
   contentPlan: typeof contentPlans.$inferSelect,
   packaging: typeof packagingProfiles.$inferSelect,
@@ -62,6 +73,11 @@ export async function runCopywriter(clientId: string, platform: Platform, day = 
   if (!packaging) missing.push("account-packager");
   if (missing.length > 0 || !contentPlan || !packaging) {
     throw new PrerequisitesMissingError(missing);
+  }
+
+  const planPlatforms: string[] = JSON.parse(contentPlan.platforms);
+  if (!planPlatforms.includes(platform)) {
+    throw new PlatformNotInPlanError(platform);
   }
 
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");

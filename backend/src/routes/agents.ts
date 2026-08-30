@@ -10,7 +10,7 @@ import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnaly
 import { CompetitorLinksMissingError, runCompetitorAnalyzer } from "../agents/competitorAnalyzer.js";
 import { PrerequisitesMissingError, runAccountPackager } from "../agents/accountPackager.js";
 import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, runContentPlanner } from "../agents/contentPlanner.js";
-import { PrerequisitesMissingError as CopywriterPrerequisitesMissingError, runCopywriter } from "../agents/copywriter.js";
+import { PlatformNotInPlanError, PrerequisitesMissingError as CopywriterPrerequisitesMissingError, runCopywriter } from "../agents/copywriter.js";
 import { ReferencesMissingError, runVisualStyleAnalyzer } from "../agents/visualStyleAnalyzer.js";
 import { PrerequisitesMissingError as VisualGeneratorPrerequisitesMissingError, runVisualGenerator } from "../agents/visualGenerator.js";
 
@@ -239,6 +239,10 @@ agentsRouter.post("/agents/copywriter", async (req, res) => {
   } catch (err) {
     if (err instanceof CopywriterPrerequisitesMissingError) {
       res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    if (err instanceof PlatformNotInPlanError) {
+      res.status(400).json({ error: "platform_not_in_plan", platform: err.platform });
       return;
     }
     console.error("[agents] copywriter failed:", err);
