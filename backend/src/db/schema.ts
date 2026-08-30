@@ -112,6 +112,24 @@ export const expertiseProfiles = sqliteTable("expertise_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента account-analyzer («Анализ своего аккаунта»). Append-only
+// по версиям, тот же принцип, что и audience_profiles/expertise_profiles.
+// Статусы только боевой/черновик-скелет — здесь нет промежуточного варианта
+// с публичными источниками (как у unpacker-агентов): вход всегда либо
+// реальные посты эксперта в достаточном количестве, либо их не хватает.
+export const accountStyleProfiles = sqliteTable("account_style_profiles", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-скелет"] }).notNull(),
+  postsAnalyzed: integer("posts_analyzed").notNull(),
+  platforms: text("platforms").notNull(),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
 // то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
 // только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.

@@ -2,9 +2,10 @@ import { Router } from "express";
 import { desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { audienceProfiles, expertiseProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, expertiseProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
+import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -66,6 +67,39 @@ agentsRouter.get("/agents/expertise-unpacker", async (req, res) => {
     .from(expertiseProfiles)
     .where(eq(expertiseProfiles.clientId, req.clientId!))
     .orderBy(desc(expertiseProfiles.version))
+    .limit(1);
+
+  if (!profile) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(profile);
+});
+
+// Запуск account-analyzer — реальный платный вызов OpenRouter (DeepSeek V4
+// Flash) поверх постов, собранных парсером (backend/src/parsers). Каждый
+// запрос — новая версия Анализа своего аккаунта, старые не перезаписываются.
+agentsRouter.post("/agents/account-analyzer", async (req, res) => {
+  try {
+    const profile = await runAccountAnalyzer(req.clientId!);
+    res.status(201).json(profile);
+  } catch (err) {
+    if (err instanceof OwnLinksMissingError) {
+      res.status(400).json({ error: "own_links_missing" });
+      return;
+    }
+    console.error("[agents] account-analyzer failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая версия Анализа своего аккаунта клиента.
+agentsRouter.get("/agents/account-analyzer", async (req, res) => {
+  const [profile] = await db
+    .select()
+    .from(accountStyleProfiles)
+    .where(eq(accountStyleProfiles.clientId, req.clientId!))
+    .orderBy(desc(accountStyleProfiles.version))
     .limit(1);
 
   if (!profile) {

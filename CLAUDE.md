@@ -11,7 +11,7 @@
 - `docs/project-specification.md` — полный пайплайн, агенты, модели, инфраструктура (актуальная версия).
 - `docs/project-specification-original.docx` — исходный черновик от заказчика, оставлен как историческая референс-точка, не редактировать.
 - `docs/landing-storyboard.md` — сториборд анимации для лендинга.
-- `prompts/target-audience.md`, `prompts/expertise.md` — системные промпты агентов `audience-unpacker` и `expertise-unpacker`.
+- `prompts/target-audience.md`, `prompts/expertise.md`, `prompts/account-analyzer.md` — системные промпты агентов `audience-unpacker`, `expertise-unpacker`, `account-analyzer`.
 - `smm-mcp/README.md` — документация MCP-сервера генерации картинок/видео (модели, формат вызовов).
 
 ## Git-workflow (обязательно)
@@ -47,7 +47,7 @@
   /src/db         — схема Drizzle, подключение, миграции
   /src/routes     — HTTP-роуты (access.ts — заявки/сессии, onboarding.ts — данные онбординга, agents.ts — запуск агентов)
   /src/agents     — оркестрация агентов (audienceUnpacker.ts, expertiseUnpacker.ts — контекст из онбординга + вызов OpenRouter + сохранение)
-  /src/parsers    — парсер постов соцсетей (telegram.ts, vk.ts, fetchPosts), готов для обеих платформ, ещё не подключён к агенту
+  /src/parsers    — парсер постов соцсетей (telegram.ts, vk.ts, fetchPosts), готов для обеих платформ, используется account-analyzer
   /src/admin      — CLI для ручного подтверждения заявок + общая approve/reject-логика
   /src/telegram   — long-polling бот для уведомлений оператору
   /src/lib        — токены, обёртка над Telegram Bot API, OpenRouter-клиент, парсер YAML-frontmatter
@@ -72,9 +72,10 @@
 - `POST /api/onboarding/references/:category` — загрузка drag-and-drop референса (multer, disk storage под `/uploads/<client_id>/<category>/`). Категория — параметр маршрута, не multipart-поле: порядок частей в multipart не гарантирован, к моменту `destination`-колбэка текстовое поле после файла может быть ещё не распаршено.
 - `POST/GET /api/agents/audience-unpacker` — запуск `audience-unpacker` (Claude Sonnet 5 через OpenRouter) на данных онбординга клиента; результат парсится (YAML-frontmatter → статус/b2b/ширина ниши/сегменты отдельными колонками) и сохраняется append-only по версиям в `audience_profiles` — повторный запуск не перезаписывает предыдущую версию молча.
 - `POST/GET /api/agents/expertise-unpacker` — тот же паттерн для `expertise-unpacker` (Claude Sonnet 5), с последней версией `audience_profiles` клиента как фоновым контекстом («для кого метод», не цель этой задачи — см. `prompts/expertise.md`, Шаг 0.3). Результат — append-only в `expertise_profiles` (статус/b2b/методология/структура метода отдельными колонками, статусы только `боевой`/`черновик-рамка`, без skeleton-варианта).
-- `backend/src/parsers/` — парсер постов своих соцсетей и (позже) конкурентов, обе платформы: `telegram.ts` (публичная `t.me/s/<channel>`, HTML через `cheerio`), `vk.ts` (`wall.get`, `VK_SERVICE_TOKEN`), общий тип `ParsedPost` и точка входа `fetchPosts(platform, url)`. Проверено живыми вызовами на обеих платформах. Пока не вызывается ни из одного роута/агента — чистые функции-утилиты, ждут `account-analyzer`.
+- `backend/src/parsers/` — парсер постов своих соцсетей и (позже) конкурентов, обе платформы: `telegram.ts` (публичная `t.me/s/<channel>`, HTML через `cheerio`), `vk.ts` (`wall.get`, `VK_SERVICE_TOKEN`), общий тип `ParsedPost` и точка входа `fetchPosts(platform, url)`. Проверено живыми вызовами на обеих платформах.
+- `POST/GET /api/agents/account-analyzer` — тот же паттерн, что и unpacker-агенты, но модель `deepseek/deepseek-v4-flash` (не Claude — задача рутинная: эмпирическое описание стиля по факту текста, без сложных мета-шагов). Вход — посты по обеим площадкам из `own`-ссылок клиента через `fetchPosts`, а не форма онбординга. Промпт `prompts/account-analyzer.md` написан с нуля (нет черновика от заказчика), статусы только `боевой`/`черновик-скелет` (без промежуточного «публичные источники» варианта — здесь либо хватает реальных постов эксперта, либо нет). Результат — append-only в `account_style_profiles`. Живой тест прошёл на реальном канале+паблике (38 постов, статус `боевой`, содержательный разбор с дословными цитатами).
 
-Ещё не реализовано: `account-analyzer` и остальные 7 агентов из таблицы ниже, контент-план, гейт подтверждения перед медиа-генерацией, экспорт, results-ссылка, весь фронтенд.
+Ещё не реализовано: остальные 6 агентов из таблицы ниже, контент-план, гейт подтверждения перед медиа-генерацией, экспорт, results-ссылка, весь фронтенд.
 
 ### Известные грабли (чтобы не наступать повторно)
 
