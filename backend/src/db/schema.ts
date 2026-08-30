@@ -185,6 +185,26 @@ export const contentPlans = sqliteTable("content_plans", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента copywriter — готовый текст одного демо-поста. Append-only
+// по версиям, но версия считается отдельно на каждую площадку (telegram/vk
+// пишутся и перегенерируются независимо друг от друга) — см.
+// backend/src/agents/copywriter.ts. Статус наследуется от самого слабого из
+// двух входов (контент-план / упаковка профиля), тем же принципом.
+export const copywriterPosts = sqliteTable("copywriter_posts", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  platform: text("platform", { enum: ["telegram", "vk"] }).notNull(),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-рамка", "черновик-скелет"] }).notNull(),
+  day: integer("day").notNull(),
+  contentPlanVersion: integer("content_plan_version").notNull(),
+  packagingProfileVersion: integer("packaging_profile_version").notNull(),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
 // то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
 // только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.

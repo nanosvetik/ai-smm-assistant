@@ -1,14 +1,16 @@
 import { Router } from "express";
-import { desc, eq } from "drizzle-orm";
+import { z } from "zod";
+import { and, desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, expertiseProfiles, packagingProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, expertiseProfiles, packagingProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
 import { CompetitorLinksMissingError, runCompetitorAnalyzer } from "../agents/competitorAnalyzer.js";
 import { PrerequisitesMissingError, runAccountPackager } from "../agents/accountPackager.js";
 import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, runContentPlanner } from "../agents/contentPlanner.js";
+import { PrerequisitesMissingError as CopywriterPrerequisitesMissingError, runCopywriter } from "../agents/copywriter.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -212,4 +214,56 @@ agentsRouter.get("/agents/content-planner", async (req, res) => {
     return;
   }
   res.json(plan);
+});
+
+const copywriterRequestSchema = z.object({
+  platform: z.enum(["telegram", "vk"]),
+  day: z.number().int().min(1).max(14).optional(),
+});
+
+// Запуск copywriter — реальный платный вызов OpenRouter (DeepSeek V4 Flash)
+// поверх Контент-плана и Упаковки профиля, для одной площадки и дня из
+// плана. Каждая площадка версионируется отдельно (см. схему copywriter_posts).
+agentsRouter.post("/agents/copywriter", async (req, res) => {
+  const parsed = copywriterRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const post = await runCopywriter(req.clientId!, parsed.data.platform, parsed.data.day);
+    res.status(201).json(post);
+  } catch (err) {
+    if (err instanceof CopywriterPrerequisitesMissingError) {
+      res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    console.error("[agents] copywriter failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+const copywriterQuerySchema = z.object({ platform: z.enum(["telegram", "vk"]) });
+
+// Последняя (по номеру версии) сохранённая версия поста клиента для указанной площадки.
+agentsRouter.get("/agents/copywriter", async (req, res) => {
+  const parsed = copywriterQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", details: parsed.error.flatten() });
+    return;
+  }
+
+  const [post] = await db
+    .select()
+    .from(copywriterPosts)
+    .where(and(eq(copywriterPosts.clientId, req.clientId!), eq(copywriterPosts.platform, parsed.data.platform)))
+    .orderBy(desc(copywriterPosts.version))
+    .limit(1);
+
+  if (!post) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(post);
 });
