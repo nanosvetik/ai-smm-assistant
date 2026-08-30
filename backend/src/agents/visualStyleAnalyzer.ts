@@ -5,10 +5,18 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { referenceFiles, visualStyleProfiles } from "../db/schema.js";
 import { chatCompletion, type ChatMessage, type ImageContentBlock, type TextContentBlock } from "../lib/openrouter.js";
-import { replaceFrontmatterField } from "../lib/frontmatter.js";
+import { parseFrontmatter, replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 
-const MODEL = "deepseek/deepseek-v4-flash-vision-exp";
+// Claude Sonnet 5, не DeepSeek — референсы клиента (кабинет, "до/после" и
+// т.п.) не публичный контент, в отличие от постов, которые разбирают
+// текстовые агенты. Разовая операция на клиента, не на каждый пост — тот
+// же аргумент, по которому Claude выбран для audience/expertise-unpacker
+// (см. раздел 4 спецификации). Экспериментальная DeepSeek V4 Flash Vision
+// Exp потребовала бы включить в OpenRouter разрешение на обучение на
+// входных данных — неприемлемо для потенциально личных фото (см. CLAUDE.md,
+// "Известные грабли").
+const MODEL = "anthropic/claude-sonnet-5";
 const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "visual-style-analyzer.md");
 const UPLOAD_ROOT = process.env.UPLOAD_DIR ?? path.join(process.cwd(), "..", "uploads");
 
@@ -84,10 +92,18 @@ export async function runVisualStyleAnalyzer(clientId: string) {
 
   const rawDocument = await chatCompletion(MODEL, [{ role: "system", content: systemPrompt }, userMessage]);
 
-  // Статус не отдаётся на откуп модели — тот же принцип честности, что и в
-  // остальных агентах: порог явно завязан на то, что реально есть на входе.
+  // Порог по количеству — это пол, а не потолок (тот же принцип, что и в
+  // competitor-analyzer): согласованность стиля между референсами видна
+  // только модели, код не может её проверить по счётчику. Если референсов
+  // мало — статус принудительно черновик-скелет; если хватает, доверяем
+  // собственной оценке модели (в т.ч. её честному "боевой" не ставить" при
+  // явном визуальном противоречии между референсами, см. промпт).
+  const frontmatter = parseFrontmatter(rawDocument) ?? {};
+  const modelStatus = STATUSES.includes(frontmatter.статус as (typeof STATUSES)[number])
+    ? (frontmatter.статус as (typeof STATUSES)[number])
+    : "черновик-скелет";
   const status: (typeof STATUSES)[number] =
-    selected.length >= MIN_REFERENCES_FOR_BOEVOY ? "боевой" : "черновик-скелет";
+    selected.length >= MIN_REFERENCES_FOR_BOEVOY ? modelStatus : "черновик-скелет";
   const document = replaceFrontmatterField(rawDocument, "статус", status);
 
   const categories = [...new Set(selected.map((r) => r.category))];
