@@ -43,3 +43,46 @@ export const sessions = sqliteTable("sessions", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
 });
+
+// Собственные соцсети клиента и ссылки на конкурентов — обе роли живут в одной
+// таблице, различаются полем role. См. раздел 3 спецификации, Шаг 1.
+export const socialLinks = sqliteTable("social_links", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  role: text("role", { enum: ["own", "competitor"] }).notNull(),
+  platform: text("platform", { enum: ["telegram", "vk"] }).notNull(),
+  url: text("url").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+// Опросник онбординга — короткая форма-заменитель интервью, один ответ на
+// клиента (пересдача формы перезаписывает). См. раздел 3 спецификации, Шаг 1.
+export const onboardingProfiles = sqliteTable("onboarding_profiles", {
+  clientId: text("client_id")
+    .primaryKey()
+    .references(() => clients.id),
+  salesModel: text("sales_model", { enum: ["b2c", "b2b"] }).notNull(),
+  clientDescription: text("client_description").notNull(),
+  clientPhrases: text("client_phrases"),
+  mainPrinciple: text("main_principle").notNull(),
+  contentTaboos: text("content_taboos").notNull(),
+  submittedAt: integer("submitted_at", { mode: "timestamp" }).notNull(),
+});
+
+// Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
+// то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
+// только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.
+export const referenceFiles = sqliteTable("reference_files", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  category: text("category", {
+    enum: ["before_after", "workspace", "showcase", "products", "process"],
+  }).notNull(),
+  filePath: text("file_path").notNull(),
+  originalFilename: text("original_filename").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
