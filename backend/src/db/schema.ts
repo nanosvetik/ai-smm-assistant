@@ -130,6 +130,24 @@ export const accountStyleProfiles = sqliteTable("account_style_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента competitor-analyzer («Анализ конкурентов»). Append-only по
+// версиям, тот же принцип, что и account_style_profiles. Статусы боевой
+// (2+ конкурента с пригодными для ранжирования постами) / черновик-скелет
+// (данных меньше чем у двух конкурентов) — см. prompts/competitor-analyzer.md.
+export const competitorAnalysisProfiles = sqliteTable("competitor_analysis_profiles", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-скелет"] }).notNull(),
+  competitorsAnalyzed: integer("competitors_analyzed").notNull(),
+  postsAnalyzed: integer("posts_analyzed").notNull(),
+  platforms: text("platforms").notNull(),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
 // то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
 // только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.

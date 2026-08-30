@@ -13,6 +13,15 @@ function extractChannel(url: string): string {
   return cleaned.split(/[/?]/)[0];
 }
 
+// t.me/s/ отображает просмотры сокращённо ("16.4M", "23K") — разворачиваем в число.
+function parseViewCount(raw: string): number | undefined {
+  const match = raw.trim().match(/^([\d.]+)([KM]?)$/i);
+  if (!match) return undefined;
+  const value = Number(match[1]);
+  const multiplier = { K: 1_000, M: 1_000_000, "": 1 }[match[2].toUpperCase()] ?? 1;
+  return Math.round(value * multiplier);
+}
+
 export async function fetchTelegramPosts(channelUrl: string, limit = 20): Promise<ParsedPost[]> {
   const channel = extractChannel(channelUrl);
   const res = await fetch(`https://t.me/s/${channel}`);
@@ -29,7 +38,13 @@ export async function fetchTelegramPosts(channelUrl: string, limit = 20): Promis
     const text = wrapper.find(".tgme_widget_message_text").first().text().trim();
     const dateAttr = wrapper.find("time").first().attr("datetime");
     if (!text || !postId || !dateAttr) return;
-    posts.push({ text, date: new Date(dateAttr), url: `https://t.me/${postId}` });
+    const viewsRaw = wrapper.find(".tgme_widget_message_views").first().text();
+    posts.push({
+      text,
+      date: new Date(dateAttr),
+      url: `https://t.me/${postId}`,
+      engagement: { views: viewsRaw ? parseViewCount(viewsRaw) : undefined },
+    });
   });
 
   // Страница превью отдаёт посты в порядке от старых к новым — разворачиваем,

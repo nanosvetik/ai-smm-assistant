@@ -36,6 +36,13 @@
       "when": 1788109742808,
       "tag": "0004_luxuriant_gabe_jones",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788110340422,
+      "tag": "0005_aberrant_warbound",
+      "breakpoints": true
     }
   ]
 }

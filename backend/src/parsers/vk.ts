@@ -4,7 +4,15 @@ const VK_API_VERSION = "5.199";
 
 interface VkWallGetResponse {
   response?: {
-    items: Array<{ id: number; owner_id: number; text: string; date: number }>;
+    items: Array<{
+      id: number;
+      owner_id: number;
+      text: string;
+      date: number;
+      views?: { count: number };
+      likes?: { count: number };
+      reposts?: { count: number };
+    }>;
   };
   error?: { error_code: number; error_msg: string };
 }
@@ -43,5 +51,10 @@ export async function fetchVkPosts(communityUrl: string, count = 20): Promise<Pa
       text: item.text,
       date: new Date(item.date * 1000),
       url: `https://vk.com/wall${item.owner_id}_${item.id}`,
+      engagement: {
+        views: item.views?.count,
+        likes: item.likes?.count,
+        reposts: item.reposts?.count,
+      },
     }));
 }

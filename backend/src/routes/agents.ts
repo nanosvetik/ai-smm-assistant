@@ -2,10 +2,11 @@ import { Router } from "express";
 import { desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, expertiseProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, expertiseProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
+import { CompetitorLinksMissingError, runCompetitorAnalyzer } from "../agents/competitorAnalyzer.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -67,6 +68,40 @@ agentsRouter.get("/agents/expertise-unpacker", async (req, res) => {
     .from(expertiseProfiles)
     .where(eq(expertiseProfiles.clientId, req.clientId!))
     .orderBy(desc(expertiseProfiles.version))
+    .limit(1);
+
+  if (!profile) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(profile);
+});
+
+// Запуск competitor-analyzer — реальный платный вызов OpenRouter (DeepSeek
+// V4 Flash) поверх топ-постов конкурентов по вовлечённости, собранных
+// парсером (backend/src/parsers). Каждый запрос — новая версия Анализа
+// конкурентов, старые не перезаписываются.
+agentsRouter.post("/agents/competitor-analyzer", async (req, res) => {
+  try {
+    const profile = await runCompetitorAnalyzer(req.clientId!);
+    res.status(201).json(profile);
+  } catch (err) {
+    if (err instanceof CompetitorLinksMissingError) {
+      res.status(400).json({ error: "competitor_links_missing" });
+      return;
+    }
+    console.error("[agents] competitor-analyzer failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая версия Анализа конкурентов клиента.
+agentsRouter.get("/agents/competitor-analyzer", async (req, res) => {
+  const [profile] = await db
+    .select()
+    .from(competitorAnalysisProfiles)
+    .where(eq(competitorAnalysisProfiles.clientId, req.clientId!))
+    .orderBy(desc(competitorAnalysisProfiles.version))
     .limit(1);
 
   if (!profile) {
