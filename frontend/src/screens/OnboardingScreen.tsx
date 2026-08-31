@@ -43,7 +43,21 @@ export function OnboardingScreen() {
       .then((state) => {
         if (state.ownLinks.length > 0) setOwnLinks(state.ownLinks);
         if (state.competitorLinks.length >= 2) setCompetitorLinks(state.competitorLinks);
-        if (state.questionnaire) setQuestionnaire(state.questionnaire);
+        // Сервер честно возвращает null для полей, добавленных позже
+        // остальных (см. expertPath) — у существующих клиентов в БД их ещё
+        // нет. Спред не спасает: ключ присутствует со значением null и всё
+        // равно перекрывает "" из EMPTY_QUESTIONNAIRE — коалесим явно, иначе
+        // плейсхолдер отрисуется корректно (values[key] ?? ""), но .trim()
+        // при сабмите на null кидает необработанное исключение вне
+        // try/catch — форма молча ничего не сохраняет, без единой ошибки.
+        if (state.questionnaire) {
+          setQuestionnaire({
+            ...EMPTY_QUESTIONNAIRE,
+            ...state.questionnaire,
+            expertPath: state.questionnaire.expertPath ?? "",
+            clientPhrases: state.questionnaire.clientPhrases ?? "",
+          });
+        }
         setReferences(state.references);
         setLoadState("ready");
       })
@@ -115,6 +129,11 @@ export function OnboardingScreen() {
         <div className="onboarding-success">
           <h1>Данные сохранены</h1>
           <p>Дальше — в кабинете: там можно запускать анализ по шагам и смотреть результат каждого.</p>
+          <p className="onboarding-success-note">
+            Это демо-версия. В реальной работе распаковка строится на 30–60-минутном интервью; здесь — по вашим
+            коротким ответам, поэтому часть документов честно выйдет с пометкой «нужно уточнить» вместо выдумки. Это
+            принцип инструмента, не недоделка демо.
+          </p>
           <a className="onboarding-success-link" href="/dashboard">
             Перейти в кабинет
           </a>

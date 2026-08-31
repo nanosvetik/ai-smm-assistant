@@ -15,10 +15,16 @@ interface StagePanelProps {
 }
 
 function StatusLine({ result }: { result: AgentResult }) {
+  const isDraft = result.status.startsWith("черновик");
   return (
-    <p className="stage-status-line">
-      статус: {result.status} · версия {result.version}
-    </p>
+    <div className="stage-status-block">
+      <p className="stage-status-line">
+        статус: {result.status} · версия {result.version}
+      </p>
+      {isDraft && (
+        <p className="stage-status-note">Черновик — это честность инструмента при неполных данных, не ошибка.</p>
+      )}
+    </div>
   );
 }
 
@@ -63,12 +69,20 @@ function RunBlock({
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(result.documentMarkdown)}</ReactMarkdown>
           </div>
         </>
-      ) : (
+      ) : !isRunning ? (
         <p className="stage-empty">{emptyHint}</p>
-      )}
+      ) : null}
       <Button type="button" variant={result ? "quiet" : "primary"} onClick={handleClick} disabled={isRunning}>
         {isRunning ? "Запускаем…" : result ? "Переделать" : runLabel}
       </Button>
+      {isRunning && (
+        <div className="stage-progress" role="status" aria-live="polite">
+          <div className="stage-progress-track">
+            <div className="stage-progress-bar" />
+          </div>
+          <p className="stage-progress-text">Работаем над документом — обычно 1–3 минуты. Не закрывайте вкладку.</p>
+        </div>
+      )}
       {error && <p className="stage-error">{error}</p>}
     </div>
   );

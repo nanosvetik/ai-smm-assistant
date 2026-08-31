@@ -41,7 +41,7 @@ function buildOnboardingContext(
 ${questionnaire.salesModel === "b2c" ? "B2C" : "B2B"}
 
 ## Путь эксперта (как пришёл в дело, на чём строится опыт)
-${questionnaire.expertPath}
+${questionnaire.expertPath ?? "не предоставлено"}
 
 ## Главный принцип работы эксперта
 ${questionnaire.mainPrinciple}

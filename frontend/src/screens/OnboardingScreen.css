@@ -27,6 +27,13 @@
   color: var(--color-muted);
 }
 
+.onboarding-success-note {
+  margin-top: 16px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+}
+
 .onboarding-success-link {
   display: inline-block;
   margin-top: 12px;
