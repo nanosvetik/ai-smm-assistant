@@ -26,10 +26,12 @@ function RunBlock({
   result,
   onRun,
   runLabel,
+  emptyHint,
 }: {
   result: AgentResult | null;
   onRun: () => Promise<void>;
   runLabel: string;
+  emptyHint: string;
 }) {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,7 @@ function RunBlock({
           </div>
         </>
       ) : (
-        <p className="stage-empty">Этот этап ещё не запускали.</p>
+        <p className="stage-empty">{emptyHint}</p>
       )}
       <Button type="button" variant={result ? "quiet" : "primary"} onClick={handleClick} disabled={isRunning}>
         {isRunning ? "Запускаем…" : result ? "Переделать" : runLabel}
@@ -73,9 +75,12 @@ function RunBlock({
 }
 
 export function StagePanel({ stage, platforms, result, onRun }: StagePanelProps) {
+  const emptyHint = `Пока не запускали — нажмите «Запустить» ниже, чтобы получить первый результат.`;
+
   return (
     <div className="stage-panel">
       <h1>{stage.label}</h1>
+      <p className="stage-description">{stage.description}</p>
 
       {stage.needsPlatform ? (
         <div className="stage-platforms">
@@ -87,12 +92,13 @@ export function StagePanel({ stage, platforms, result, onRun }: StagePanelProps)
                 result={(result as Partial<Record<Platform, AgentResult | null>>)?.[platform] ?? null}
                 onRun={() => onRun(platform)}
                 runLabel="Запустить"
+                emptyHint={emptyHint}
               />
             </div>
           ))}
         </div>
       ) : (
-        <RunBlock result={result as AgentResult | null} onRun={() => onRun()} runLabel="Запустить" />
+        <RunBlock result={result as AgentResult | null} onRun={() => onRun()} runLabel="Запустить" emptyHint={emptyHint} />
       )}
     </div>
   );

@@ -5,6 +5,13 @@
 
 .stage-panel h1 {
   font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.stage-description {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-muted);
   margin-bottom: 24px;
 }
 

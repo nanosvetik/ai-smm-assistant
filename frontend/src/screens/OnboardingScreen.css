@@ -43,6 +43,22 @@
   margin-bottom: 40px;
 }
 
+.onboarding-header-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.onboarding-header-mark {
+  font-family: var(--font-display);
+  font-size: 56px;
+  line-height: 0.6;
+  color: var(--color-plum);
+  opacity: 0.45;
+  margin-top: 6px;
+  user-select: none;
+}
+
 .onboarding-header h1 {
   font-size: 32px;
   margin-bottom: 8px;
@@ -52,14 +68,46 @@
   color: var(--color-muted);
 }
 
+.onboarding-roadmap {
+  margin-top: 12px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+}
+
+.onboarding-roadmap span {
+  color: var(--color-plum);
+}
+
+@media (max-width: 480px) {
+  .onboarding-header-mark {
+    font-size: 44px;
+  }
+}
+
 .onboarding-section {
   margin-bottom: var(--space-card-gap);
+}
+
+.onboarding-eyebrow {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--color-plum);
+  margin: 0 0 12px;
 }
 
 .onboarding-field-label {
   display: block;
   font-weight: 500;
   margin-bottom: 12px;
+}
+
+.onboarding-field-hint {
+  color: var(--color-muted);
+  font-size: 14px;
+  margin: 8px 0 0;
 }
 
 .sales-model-toggle {

@@ -39,3 +39,7 @@
 .sidebar-item-active:not(.sidebar-item-current) {
   background: rgba(31, 36, 32, 0.05);
 }
+
+.sidebar-group-break {
+  margin-bottom: 16px;
+}

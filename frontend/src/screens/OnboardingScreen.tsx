@@ -121,11 +121,22 @@ export function OnboardingScreen() {
     <div className="onboarding-screen">
       <form className="onboarding-form" onSubmit={handleSubmit}>
         <header className="onboarding-header">
-          <h1>Расскажите о себе</h1>
-          <p>Это займёт минут десять. Отвечайте своими словами — чем живее, тем точнее получится результат.</p>
+          <div className="onboarding-header-top">
+            <span className="onboarding-header-mark" aria-hidden="true">„</span>
+            <h1>Расскажите о себе</h1>
+          </div>
+          <p>
+            Это займёт минут десять. Дальше на основе этих ответов мы соберём портрет вашей аудитории,
+            ваш метод и черновик первых постов — отвечайте своими словами, чем живее, тем точнее получится.
+          </p>
+          <p className="onboarding-roadmap">
+            Дальше по порядку: <span>формат работы</span> · <span>ваши каналы</span> · <span>несколько вопросов</span> ·{" "}
+            <span>материалы для контента</span>
+          </p>
         </header>
 
         <section className="onboarding-section">
+          <h2 className="onboarding-eyebrow">О вашей работе</h2>
           <label className="onboarding-field-label">Как вы работаете с клиентами?</label>
           <div className="sales-model-toggle">
             {(["b2c", "b2b"] as SalesModel[]).map((model) => (
@@ -139,9 +150,14 @@ export function OnboardingScreen() {
               </button>
             ))}
           </div>
+          <p className="onboarding-field-hint">
+            Это определяет, как мы будем говорить о ваших клиентах дальше — как о людях, которые платят сами, или
+            как о партнёрах и заказчиках.
+          </p>
         </section>
 
         <section className="onboarding-section">
+          <h2 className="onboarding-eyebrow">Ваши каналы</h2>
           <LinksField
             label="Ваши соцсети"
             hint="Telegram-канал и/или сообщество ВК, где вы уже публикуетесь. Можно оставить пустым, если их пока нет."
@@ -161,10 +177,12 @@ export function OnboardingScreen() {
         </section>
 
         <section className="onboarding-section">
+          <h2 className="onboarding-eyebrow">Теперь — несколько вопросов</h2>
           <InterviewCard values={questionnaire} onChange={updateQuestionnaire} />
         </section>
 
         <section className="onboarding-section">
+          <h2 className="onboarding-eyebrow">Материалы для контента</h2>
           <ReferenceDropzone references={references} onUploaded={(file) => setReferences((r) => [...r, file])} />
         </section>
 

@@ -8,21 +8,85 @@ import type { Platform } from "./api";
 export interface StageConfig {
   key: string;
   label: string;
+  description: string;
   agentSlug: string;
   needsPlatform: boolean;
   vkOnly: boolean;
 }
 
 export const STAGES: StageConfig[] = [
-  { key: "audience", label: "ЦА и позиционирование", agentSlug: "audience-unpacker", needsPlatform: false, vkOnly: false },
-  { key: "expertise", label: "Распаковка эксперта", agentSlug: "expertise-unpacker", needsPlatform: false, vkOnly: false },
-  { key: "account-analyzer", label: "Анализ аккаунта", agentSlug: "account-analyzer", needsPlatform: false, vkOnly: false },
-  { key: "competitor-analyzer", label: "Анализ конкурентов", agentSlug: "competitor-analyzer", needsPlatform: false, vkOnly: false },
-  { key: "account-packager", label: "Упаковка аккаунта", agentSlug: "account-packager", needsPlatform: false, vkOnly: false },
-  { key: "content-planner", label: "Контент-план", agentSlug: "content-planner", needsPlatform: false, vkOnly: false },
-  { key: "copywriter", label: "Посты", agentSlug: "copywriter", needsPlatform: true, vkOnly: false },
-  { key: "visual-generator", label: "Изображения", agentSlug: "visual-generator", needsPlatform: true, vkOnly: false },
-  { key: "reels-writer", label: "Рилсы", agentSlug: "reels-writer", needsPlatform: false, vkOnly: true },
+  {
+    key: "audience",
+    label: "ЦА и позиционирование",
+    description: "Портрет вашей аудитории: кто эти люди, каким языком они говорят и что их зацепит.",
+    agentSlug: "audience-unpacker",
+    needsPlatform: false,
+    vkOnly: false,
+  },
+  {
+    key: "expertise",
+    label: "Распаковка эксперта",
+    description: "Ваш метод, принципы работы и то, чего вы точно не делаете в контенте.",
+    agentSlug: "expertise-unpacker",
+    needsPlatform: false,
+    vkOnly: false,
+  },
+  {
+    key: "account-analyzer",
+    label: "Анализ аккаунта",
+    description: "Как вы уже пишете сейчас — по вашим реальным постам, без придумывания заново.",
+    agentSlug: "account-analyzer",
+    needsPlatform: false,
+    vkOnly: false,
+  },
+  {
+    key: "competitor-analyzer",
+    label: "Анализ конкурентов",
+    description: "Что реально заходит у похожих специалистов в вашей нише.",
+    agentSlug: "competitor-analyzer",
+    needsPlatform: false,
+    vkOnly: false,
+  },
+  {
+    key: "account-packager",
+    label: "Упаковка аккаунта",
+    description: "Как рассказывать о себе одним текстом — позиционирование и готовое био.",
+    agentSlug: "account-packager",
+    needsPlatform: false,
+    vkOnly: false,
+  },
+  {
+    key: "content-planner",
+    label: "Контент-план",
+    description: "Темы и заголовки постов на две недели вперёд под ваши площадки.",
+    agentSlug: "content-planner",
+    needsPlatform: false,
+    vkOnly: false,
+  },
+  {
+    key: "copywriter",
+    label: "Посты",
+    description: "Готовый текст демо-поста по контент-плану — отдельно для каждой вашей площадки.",
+    agentSlug: "copywriter",
+    needsPlatform: true,
+    vkOnly: false,
+  },
+  {
+    key: "visual-generator",
+    label: "Изображения",
+    description: "Промпт для картинки к посту — в стиле, который подходит именно вам.",
+    agentSlug: "visual-generator",
+    needsPlatform: true,
+    vkOnly: false,
+  },
+  {
+    key: "reels-writer",
+    label: "Рилсы",
+    description: "Сценарий короткого видео для ВК — хук, раскадровка и текст на камеру.",
+    agentSlug: "reels-writer",
+    needsPlatform: false,
+    vkOnly: true,
+  },
 ];
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
