@@ -31,6 +31,7 @@ const onboardingSchema = z.object({
     clientPhrases: z.string().trim().max(2000).optional(),
     mainPrinciple: z.string().trim().min(1).max(2000),
     contentTaboos: z.string().trim().min(1).max(2000),
+    expertPath: z.string().trim().min(1).max(2000),
   }),
 });
 
@@ -72,6 +73,7 @@ onboardingRouter.post("/onboarding", async (req, res) => {
       clientPhrases: questionnaire.clientPhrases ?? null,
       mainPrinciple: questionnaire.mainPrinciple,
       contentTaboos: questionnaire.contentTaboos,
+      expertPath: questionnaire.expertPath,
       submittedAt: now,
     })
     .onConflictDoUpdate({
@@ -82,6 +84,7 @@ onboardingRouter.post("/onboarding", async (req, res) => {
         clientPhrases: questionnaire.clientPhrases ?? null,
         mainPrinciple: questionnaire.mainPrinciple,
         contentTaboos: questionnaire.contentTaboos,
+        expertPath: questionnaire.expertPath,
         submittedAt: now,
       },
     });

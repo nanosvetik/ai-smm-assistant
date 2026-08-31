@@ -7,6 +7,14 @@
   padding: 40px 24px 96px;
 }
 
+@media (max-width: 760px) {
+  .dashboard-screen {
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px 16px 64px;
+  }
+}
+
 .dashboard-loading {
   color: var(--color-muted);
   padding: 40px 24px;

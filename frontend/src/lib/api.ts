@@ -13,6 +13,7 @@ export interface Questionnaire {
   clientPhrases?: string;
   mainPrinciple: string;
   contentTaboos: string;
+  expertPath: string;
 }
 
 export const REFERENCE_CATEGORIES = ["before_after", "workspace", "showcase", "products", "process"] as const;

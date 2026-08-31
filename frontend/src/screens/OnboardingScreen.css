@@ -115,6 +115,12 @@
   gap: 8px;
 }
 
+@media (max-width: 420px) {
+  .sales-model-toggle {
+    flex-direction: column;
+  }
+}
+
 .sales-model-option {
   border: 1px solid var(--color-border-soft);
   background: var(--color-bg);

@@ -1,0 +1,1 @@
+ALTER TABLE `onboarding_profiles` ADD `expert_path` text;

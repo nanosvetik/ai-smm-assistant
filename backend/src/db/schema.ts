@@ -68,6 +68,10 @@ export const onboardingProfiles = sqliteTable("onboarding_profiles", {
   clientPhrases: text("client_phrases"),
   mainPrinciple: text("main_principle").notNull(),
   contentTaboos: text("content_taboos").notNull(),
+  // Нет NOT NULL умышленно — в БД уже есть тестовые строки без этого поля
+  // (добавлено позже остальных). Обязательность — на уровне zod-схемы
+  // роута (backend/src/routes/onboarding.ts) и формы (frontend), не БД.
+  expertPath: text("expert_path"),
   submittedAt: integer("submitted_at", { mode: "timestamp" }).notNull(),
 });
 

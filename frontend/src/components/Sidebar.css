@@ -6,6 +6,12 @@
   flex: 0 0 auto;
 }
 
+@media (max-width: 760px) {
+  .sidebar {
+    width: 100%;
+  }
+}
+
 .sidebar-item {
   display: flex;
   align-items: center;

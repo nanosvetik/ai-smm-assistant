@@ -23,6 +23,7 @@ const EMPTY_QUESTIONNAIRE: Questionnaire = {
   clientPhrases: "",
   mainPrinciple: "",
   contentTaboos: "",
+  expertPath: "",
 };
 
 export function OnboardingScreen() {
@@ -70,7 +71,12 @@ export function OnboardingScreen() {
       setValidationError("Укажите ссылки минимум на 2 конкурентов — без них не получится найти рабочие форматы в нише.");
       return;
     }
-    if (!questionnaire.clientDescription.trim() || !questionnaire.mainPrinciple.trim() || !questionnaire.contentTaboos.trim()) {
+    if (
+      !questionnaire.clientDescription.trim() ||
+      !questionnaire.mainPrinciple.trim() ||
+      !questionnaire.contentTaboos.trim() ||
+      !questionnaire.expertPath.trim()
+    ) {
       setValidationError("Ответьте на обязательные вопросы ниже — без них не получится честно распаковать метод.");
       return;
     }
