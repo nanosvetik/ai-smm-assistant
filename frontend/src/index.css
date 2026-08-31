@@ -1,0 +1,86 @@
+@import "./assets/fonts/fonts.css";
+
+:root {
+  /* Палитра — design-brief-ателье.md. Слива и изумруд не конкурируют за одно
+     значение: слива — бренд/акцент, изумруд — единственный цвет "готово". */
+  --color-bg: #fafaf6;
+  --color-text: #1f2420;
+  --color-plum: #4a2545;
+  --color-plum-soft: #efe3eb;
+  --color-emerald: #1f5c42;
+  --color-ochre: #b8a98c;
+  --color-muted: #a3a89c;
+
+  --color-border-soft: #e7e3da;
+
+  --font-display: "Alegreya", Georgia, "Times New Roman", serif;
+  --font-body: "Golos Text", -apple-system, "Segoe UI", sans-serif;
+
+  --radius-card: 10px;
+  --space-card-gap: 24px;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Видимый фокус — не убираем outline, только даём ему цвет из палитры. */
+:focus-visible {
+  outline: 2px solid var(--color-plum);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

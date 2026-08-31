@@ -1,0 +1,179 @@
+import { useEffect, useState, type FormEvent } from "react";
+import {
+  ApiError,
+  getOnboarding,
+  submitOnboarding,
+  type Questionnaire,
+  type ReferenceFile,
+  type SalesModel,
+  type SocialLink,
+} from "../lib/api";
+import { LinksField } from "../components/LinksField";
+import { InterviewCard } from "../components/InterviewCard";
+import { ReferenceDropzone } from "../components/ReferenceDropzone";
+import { Button } from "../components/Button";
+import "./OnboardingScreen.css";
+
+type LoadState = "loading" | "no_session" | "ready";
+type SubmitState = "idle" | "submitting" | "success" | "error";
+
+const EMPTY_QUESTIONNAIRE: Questionnaire = {
+  salesModel: "b2c",
+  clientDescription: "",
+  clientPhrases: "",
+  mainPrinciple: "",
+  contentTaboos: "",
+};
+
+export function OnboardingScreen() {
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [ownLinks, setOwnLinks] = useState<SocialLink[]>([]);
+  const [competitorLinks, setCompetitorLinks] = useState<SocialLink[]>([
+    { platform: "telegram", url: "" },
+    { platform: "telegram", url: "" },
+  ]);
+  const [questionnaire, setQuestionnaire] = useState<Questionnaire>(EMPTY_QUESTIONNAIRE);
+  const [references, setReferences] = useState<ReferenceFile[]>([]);
+  const [submitState, setSubmitState] = useState<SubmitState>("idle");
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getOnboarding()
+      .then((state) => {
+        if (state.ownLinks.length > 0) setOwnLinks(state.ownLinks);
+        if (state.competitorLinks.length >= 2) setCompetitorLinks(state.competitorLinks);
+        if (state.questionnaire) setQuestionnaire(state.questionnaire);
+        setReferences(state.references);
+        setLoadState("ready");
+      })
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 401) {
+          setLoadState("no_session");
+        } else {
+          setLoadState("ready");
+        }
+      });
+  }, []);
+
+  function updateQuestionnaire(patch: Partial<Questionnaire>) {
+    setQuestionnaire((q) => ({ ...q, ...patch }));
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setValidationError(null);
+
+    const cleanOwn = ownLinks.filter((l) => l.url.trim().length > 0);
+    const cleanCompetitor = competitorLinks.filter((l) => l.url.trim().length > 0);
+
+    if (cleanCompetitor.length < 2) {
+      setValidationError("Укажите ссылки минимум на 2 конкурентов — без них не получится найти рабочие форматы в нише.");
+      return;
+    }
+    if (!questionnaire.clientDescription.trim() || !questionnaire.mainPrinciple.trim() || !questionnaire.contentTaboos.trim()) {
+      setValidationError("Ответьте на обязательные вопросы ниже — без них не получится честно распаковать метод.");
+      return;
+    }
+
+    setSubmitState("submitting");
+    try {
+      await submitOnboarding({ ownLinks: cleanOwn, competitorLinks: cleanCompetitor, questionnaire });
+      setSubmitState("success");
+    } catch {
+      setSubmitState("error");
+    }
+  }
+
+  if (loadState === "loading") {
+    return (
+      <div className="onboarding-screen">
+        <p className="onboarding-loading">Загружаем…</p>
+      </div>
+    );
+  }
+
+  if (loadState === "no_session") {
+    return (
+      <div className="onboarding-screen">
+        <div className="onboarding-no-session">
+          <h1>Нет доступа</h1>
+          <p>Откройте эту страницу по ссылке, которую мы прислали вам в чат.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitState === "success") {
+    return (
+      <div className="onboarding-screen">
+        <div className="onboarding-success">
+          <h1>Данные сохранены</h1>
+          <p>Мы получили вашу анкету. Дальше мы разберём её и вернёмся с результатом.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="onboarding-screen">
+      <form className="onboarding-form" onSubmit={handleSubmit}>
+        <header className="onboarding-header">
+          <h1>Расскажите о себе</h1>
+          <p>Это займёт минут десять. Отвечайте своими словами — чем живее, тем точнее получится результат.</p>
+        </header>
+
+        <section className="onboarding-section">
+          <label className="onboarding-field-label">Как вы работаете с клиентами?</label>
+          <div className="sales-model-toggle">
+            {(["b2c", "b2b"] as SalesModel[]).map((model) => (
+              <button
+                type="button"
+                key={model}
+                className={`sales-model-option ${questionnaire.salesModel === model ? "sales-model-option-active" : ""}`}
+                onClick={() => updateQuestionnaire({ salesModel: model })}
+              >
+                {model === "b2c" ? "С частными клиентами" : "С бизнесом"}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="onboarding-section">
+          <LinksField
+            label="Ваши соцсети"
+            hint="Telegram-канал и/или сообщество ВК, где вы уже публикуетесь. Можно оставить пустым, если их пока нет."
+            links={ownLinks}
+            onChange={setOwnLinks}
+            min={0}
+            max={2}
+          />
+          <LinksField
+            label="Конкуренты или эксперты в вашей нише"
+            hint="2–3 ссылки — мы найдём, какие форматы реально работают у похожих специалистов."
+            links={competitorLinks}
+            onChange={setCompetitorLinks}
+            min={2}
+            max={3}
+          />
+        </section>
+
+        <section className="onboarding-section">
+          <InterviewCard values={questionnaire} onChange={updateQuestionnaire} />
+        </section>
+
+        <section className="onboarding-section">
+          <ReferenceDropzone references={references} onUploaded={(file) => setReferences((r) => [...r, file])} />
+        </section>
+
+        {validationError && <p className="onboarding-validation-error">{validationError}</p>}
+        {submitState === "error" && (
+          <p className="onboarding-validation-error">Не получилось сохранить данные. Попробуйте ещё раз.</p>
+        )}
+
+        <Button type="submit" disabled={submitState === "submitting"}>
+          {submitState === "submitting" ? "Сохраняем…" : "Сохранить и продолжить"}
+        </Button>
+      </form>
+    </div>
+  );
+}

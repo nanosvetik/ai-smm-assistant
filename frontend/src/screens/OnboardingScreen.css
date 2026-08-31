@@ -1,0 +1,80 @@
+.onboarding-screen {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 48px 24px 96px;
+}
+
+.onboarding-loading {
+  color: var(--color-muted);
+}
+
+.onboarding-no-session,
+.onboarding-success {
+  max-width: 420px;
+  text-align: center;
+  margin-top: 15vh;
+}
+
+.onboarding-no-session h1,
+.onboarding-success h1 {
+  font-size: 26px;
+  margin-bottom: 12px;
+}
+
+.onboarding-no-session p,
+.onboarding-success p {
+  color: var(--color-muted);
+}
+
+.onboarding-form {
+  width: 100%;
+  max-width: 640px;
+}
+
+.onboarding-header {
+  margin-bottom: 40px;
+}
+
+.onboarding-header h1 {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.onboarding-header p {
+  color: var(--color-muted);
+}
+
+.onboarding-section {
+  margin-bottom: var(--space-card-gap);
+}
+
+.onboarding-field-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.sales-model-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.sales-model-option {
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-bg);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 15px;
+}
+
+.sales-model-option-active {
+  border-color: var(--color-plum);
+  background: var(--color-plum-soft);
+  color: var(--color-plum);
+}
+
+.onboarding-validation-error {
+  color: #a13b3b;
+  margin-bottom: 16px;
+}

@@ -1,0 +1,32 @@
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 12px 22px;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-plum);
+  color: var(--color-bg);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: #5c2e55;
+}
+
+.btn-quiet {
+  background: transparent;
+  color: var(--color-muted);
+  padding: 12px 8px;
+}
+
+.btn-quiet:not(:disabled):hover {
+  color: var(--color-text);
+}

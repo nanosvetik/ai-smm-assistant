@@ -38,8 +38,13 @@ export async function approveRequest(requestId: string) {
     .set({ status: "approved", clientId, reviewedAt: now })
     .where(eq(accessRequests.id, requestId));
 
-  const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
-  return { request, link: `${baseUrl}/api/access/${token}`, expiresAt };
+  // BASE_URL — публичный origin, который видит пользователь (фронтенд), не
+  // бэкенд напрямую: /api/access/:token отдаёт голый JSON, не HTML — ссылка
+  // должна вести на экран, который сам вызовет эту ручку и покажет результат.
+  // В деве это порт Vite (5173), не бэкенда (3000); в проде — один домен на
+  // оба сервиса через nginx/Caddy (раздел 7 спецификации), тот же BASE_URL.
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:5173";
+  return { request, link: `${baseUrl}/onboarding/${token}`, expiresAt };
 }
 
 export async function rejectRequest(requestId: string) {

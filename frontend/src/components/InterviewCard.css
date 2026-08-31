@@ -1,0 +1,57 @@
+.interview-card {
+  background: var(--color-bg);
+  border-radius: var(--radius-card);
+  box-shadow: 0 2px 16px rgba(31, 36, 32, 0.08);
+  padding: 32px;
+}
+
+.interview-question {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.interview-question + .interview-question {
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.interview-avatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-plum-soft);
+  color: var(--color-plum);
+  font-family: var(--font-display);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.interview-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.interview-question-text {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.interview-optional {
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.interview-body textarea {
+  width: 100%;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 8px;
+  padding: 12px 14px;
+  resize: vertical;
+  font-family: var(--font-body);
+  background: var(--color-bg);
+}

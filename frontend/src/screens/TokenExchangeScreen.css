@@ -1,0 +1,31 @@
+.token-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.token-screen-message {
+  color: var(--color-muted);
+}
+
+.token-screen-card {
+  max-width: 420px;
+  text-align: center;
+}
+
+.token-screen-card h1 {
+  font-size: 26px;
+  margin-bottom: 12px;
+}
+
+.token-screen-card p {
+  color: var(--color-muted);
+  margin-bottom: 16px;
+}
+
+.token-screen-card a {
+  color: var(--color-plum);
+  font-weight: 500;
+}
