@@ -37,14 +37,19 @@ function buildContext(
   contentPlan: typeof contentPlans.$inferSelect,
   packaging: typeof packagingProfiles.$inferSelect,
   platform: Platform,
-  day: number
+  day: number,
+  editorFeedback?: string
 ): string {
+  const feedbackBlock = editorFeedback
+    ? `\n# Замечания редактора (учти при переписывании, тема остаётся та же)\n${editorFeedback}\n`
+    : "";
+
   return `# Контент-план на 2 недели (статус: ${contentPlan.status})
 ${contentPlan.documentMarkdown}
 
 # Упаковка профиля (статус: ${packaging.status})
 ${packaging.documentMarkdown}
-
+${feedbackBlock}
 # Задание
 Напиши пост для площадки: ${platform === "telegram" ? "Telegram" : "ВК"}, день ${day} из плана выше. Используй ровно ту тему и заголовок/хук, которые указаны в таблице плана для этого дня и этой площадки — не меняй тему.
 `;
@@ -54,7 +59,10 @@ function weakestStatus(statuses: Status[]): Status {
   return statuses.reduce((weakest, s) => (STATUS_RANK[s] < STATUS_RANK[weakest] ? s : weakest));
 }
 
-export async function runCopywriter(clientId: string, platform: Platform, day = 1) {
+// editorFeedback — доп. инструкция от editor-in-chief при автоматической
+// перегенерации (см. backend/src/agents/reviewedContent.ts), не параметр
+// обычного вызова из UI.
+export async function runCopywriter(clientId: string, platform: Platform, day = 1, editorFeedback?: string) {
   const [contentPlan] = await db
     .select()
     .from(contentPlans)
@@ -81,7 +89,7 @@ export async function runCopywriter(clientId: string, platform: Platform, day = 
   }
 
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
-  const userMessage = buildContext(contentPlan, packaging, platform, day);
+  const userMessage = buildContext(contentPlan, packaging, platform, day, editorFeedback);
 
   const rawDocument = await chatCompletion(MODEL, [
     { role: "system", content: systemPrompt },

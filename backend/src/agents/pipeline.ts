@@ -6,8 +6,9 @@ import { runVisualStyleAnalyzer } from "./visualStyleAnalyzer.js";
 import { runProfileHeaderAnalyzer } from "./profileHeaderAnalyzer.js";
 import { runAccountPackager } from "./accountPackager.js";
 import { runContentPlanner } from "./contentPlanner.js";
-import { runCopywriter, type Platform } from "./copywriter.js";
+import { type Platform } from "./copywriter.js";
 import { runVisualGenerator } from "./visualGenerator.js";
+import { runReviewedCopywriter, runReviewedReelsWriter } from "./reviewedContent.js";
 
 type Ok<T> = { status: "ok"; result: T };
 type Failed = { status: "failed"; error: string };
@@ -54,8 +55,11 @@ export interface PipelineResult {
   profileHeaderAnalyzer: StageResult<Awaited<ReturnType<typeof runProfileHeaderAnalyzer>>>;
   accountPackager?: StageResult<Awaited<ReturnType<typeof runAccountPackager>>>;
   contentPlanner?: StageResult<Awaited<ReturnType<typeof runContentPlanner>>>;
-  copywriter?: Partial<Record<Platform, StageResult<Awaited<ReturnType<typeof runCopywriter>>>>>;
+  copywriter?: Partial<Record<Platform, StageResult<Awaited<ReturnType<typeof runReviewedCopywriter>>>>>;
   visualGenerator?: Partial<Record<Platform, StageResult<Awaited<ReturnType<typeof runVisualGenerator>>>>>;
+  // Только для клиентов с ВК (см. content-planner — Reels в этом продукте
+  // существуют только там); для клиента без ВК — skipped, не failed.
+  reelsWriter?: StageResult<Awaited<ReturnType<typeof runReviewedReelsWriter>>>;
 }
 
 // Запускает весь текстовый пайплайн разом — от данных онбординга до
@@ -118,10 +122,22 @@ export async function runFullPipeline(clientId: string): Promise<PipelineResult>
 
   const platforms = JSON.parse(planResult.result.platforms) as Platform[];
 
-  const copywriterEntries = await Promise.all(
-    platforms.map(async (platform) => [platform, await runStage(() => runCopywriter(clientId, platform, 1))] as const)
-  );
+  // copywriter (с автоматической editor-in-chief перегенерацией, см.
+  // reviewedContent.ts) и reels-writer не зависят друг от друга — параллельно.
+  // reels-writer — только если у клиента есть ВК (Reels для других площадок
+  // в этом продукте не существуют, см. content-planner).
+  const [copywriterEntries, reelsWriterResult] = await Promise.all([
+    Promise.all(
+      platforms.map(
+        async (platform) => [platform, await runStage(() => runReviewedCopywriter(clientId, platform, 1))] as const
+      )
+    ),
+    platforms.includes("vk")
+      ? runStage(() => runReviewedReelsWriter(clientId))
+      : Promise.resolve(skippedBecause("client has no VK, reels not applicable")),
+  ]);
   result.copywriter = Object.fromEntries(copywriterEntries);
+  result.reelsWriter = reelsWriterResult;
 
   const visualGeneratorEntries = await Promise.all(
     platforms.map(async (platform) => {

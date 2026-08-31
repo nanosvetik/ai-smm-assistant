@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, expertiseProfiles, packagingProfiles, profileHeaderProfiles, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, editorialReviews, expertiseProfiles, packagingProfiles, profileHeaderProfiles, reelsScripts, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
@@ -14,6 +14,8 @@ import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, r
 import { PlatformNotInPlanError, PrerequisitesMissingError as CopywriterPrerequisitesMissingError, runCopywriter } from "../agents/copywriter.js";
 import { ReferencesMissingError, runVisualStyleAnalyzer } from "../agents/visualStyleAnalyzer.js";
 import { PrerequisitesMissingError as VisualGeneratorPrerequisitesMissingError, runVisualGenerator } from "../agents/visualGenerator.js";
+import { PrerequisitesMissingError as ReelsWriterPrerequisitesMissingError, ReelsNotAvailableError, runReelsWriter } from "../agents/reelsWriter.js";
+import { PrerequisitesMissingError as EditorInChiefPrerequisitesMissingError, runEditorInChief } from "../agents/editorInChief.js";
 import { runFullPipeline } from "../agents/pipeline.js";
 
 export const agentsRouter = Router();
@@ -397,6 +399,109 @@ agentsRouter.get("/agents/visual-generator", async (req, res) => {
     return;
   }
   res.json(prompt);
+});
+
+// Запуск reels-writer — реальный платный вызов OpenRouter (DeepSeek V4 Pro)
+// поверх Контент-плана и Упаковки профиля. Reels в этом продукте существуют
+// только для ВК — если ВК нет в реальных площадках клиента, падает
+// ReelsNotAvailableError до вызова модели. Без параметра площадки: сценарий
+// один на клиента, версионируется без разбивки по площадкам.
+agentsRouter.post("/agents/reels-writer", async (req, res) => {
+  try {
+    const script = await runReelsWriter(req.clientId!);
+    res.status(201).json(script);
+  } catch (err) {
+    if (err instanceof ReelsWriterPrerequisitesMissingError) {
+      res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    if (err instanceof ReelsNotAvailableError) {
+      res.status(400).json({ error: "reels_not_available" });
+      return;
+    }
+    console.error("[agents] reels-writer failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая версия сценария рилса клиента.
+agentsRouter.get("/agents/reels-writer", async (req, res) => {
+  const [script] = await db
+    .select()
+    .from(reelsScripts)
+    .where(eq(reelsScripts.clientId, req.clientId!))
+    .orderBy(desc(reelsScripts.version))
+    .limit(1);
+
+  if (!script) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(script);
+});
+
+const editorInChiefRequestSchema = z.object({
+  contentType: z.enum(["copywriter", "reels"]),
+  platform: z.enum(["telegram", "vk"]),
+});
+
+// Запуск editor-in-chief — реальный платный вызов OpenRouter (DeepSeek V4
+// Pro) поверх последней версии поста/сценария указанной площадки + табу
+// (expertise-unpacker) + стоп-слова/tone (audience-unpacker) + tone/
+// позиционирование (account-packager). Только вердикт, текст не переписывает
+// (раздел 5 спецификации) — автоматическая перегенерация по фидбеку живёт в
+// backend/src/agents/reviewedContent.ts, не в этой ручке.
+agentsRouter.post("/agents/editor-in-chief", async (req, res) => {
+  const parsed = editorInChiefRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const review = await runEditorInChief(req.clientId!, parsed.data.contentType, parsed.data.platform);
+    res.status(201).json(review);
+  } catch (err) {
+    if (err instanceof EditorInChiefPrerequisitesMissingError) {
+      res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    console.error("[agents] editor-in-chief failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+const editorInChiefQuerySchema = z.object({
+  contentType: z.enum(["copywriter", "reels"]),
+  platform: z.enum(["telegram", "vk"]),
+});
+
+// Последняя (по номеру версии) сохранённая проверка для указанных типа контента и площадки.
+agentsRouter.get("/agents/editor-in-chief", async (req, res) => {
+  const parsed = editorInChiefQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", details: parsed.error.flatten() });
+    return;
+  }
+
+  const [review] = await db
+    .select()
+    .from(editorialReviews)
+    .where(
+      and(
+        eq(editorialReviews.clientId, req.clientId!),
+        eq(editorialReviews.contentType, parsed.data.contentType),
+        eq(editorialReviews.platform, parsed.data.platform)
+      )
+    )
+    .orderBy(desc(editorialReviews.version))
+    .limit(1);
+
+  if (!review) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(review);
 });
 
 // Запускает весь текстовый пайплайн разом (кнопка «Запустить анализ» на

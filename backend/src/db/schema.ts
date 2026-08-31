@@ -277,6 +277,51 @@ export const visualGeneratorPrompts = sqliteTable("visual_generator_prompts", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента reels-writer — сценарий одного демо-рилса. Append-only по
+// версиям, без разделения по площадкам (Reels в этом продукте существуют
+// только для ВК, см. content-planner) — в отличие от copywriter_posts/
+// visual_generator_prompts, где версия считается на каждую площадку отдельно.
+// usedReferences/referenceCategories — не то, что реально загружено клиентом
+// (это reference_files), а то, что модель реально использовала в выбранной
+// идее (см. Шаг 1 prompts/reels-writer.md) — оба могут разойтись, если
+// референсы есть, но ни один не подошёл ни одной идее плана.
+export const reelsScripts = sqliteTable("reels_scripts", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-рамка", "черновик-скелет"] }).notNull(),
+  usedReferences: integer("used_references", { mode: "boolean" }).notNull(),
+  referenceCategories: text("reference_categories").notNull(),
+  contentPlanVersion: integer("content_plan_version").notNull(),
+  packagingProfileVersion: integer("packaging_profile_version").notNull(),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+// Результат агента editor-in-chief («Редакторская проверка») — вердикт
+// ok/needs_revision над конкретной версией copywriter_posts или
+// reels_scripts (contentType + reviewedContentVersion). Append-only, версия
+// считается отдельно на пару (contentType, platform) — тот же принцип, что и
+// copywriter_posts. Не хранит нарушения отдельной структурированной колонкой:
+// агент сам не переписывает текст (см. раздел 5 спецификации), а фидбек для
+// автоматической перегенерации — это documentMarkdown целиком, не разобранный
+// на поля список (см. backend/src/agents/reviewedContent.ts).
+export const editorialReviews = sqliteTable("editorial_reviews", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  contentType: text("content_type", { enum: ["copywriter", "reels"] }).notNull(),
+  platform: text("platform", { enum: ["telegram", "vk"] }).notNull(),
+  version: integer("version").notNull(),
+  reviewedContentVersion: integer("reviewed_content_version").notNull(),
+  verdict: text("verdict", { enum: ["ok", "needs_revision"] }).notNull(),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
 // то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
 // только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.
