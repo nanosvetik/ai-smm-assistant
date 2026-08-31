@@ -27,6 +27,13 @@
   color: var(--color-muted);
 }
 
+.onboarding-success-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--color-plum);
+  font-weight: 500;
+}
+
 .onboarding-form {
   width: 100%;
   max-width: 640px;

@@ -108,7 +108,10 @@ export function OnboardingScreen() {
       <div className="onboarding-screen">
         <div className="onboarding-success">
           <h1>Данные сохранены</h1>
-          <p>Мы получили вашу анкету. Дальше мы разберём её и вернёмся с результатом.</p>
+          <p>Дальше — в кабинете: там можно запускать анализ по шагам и смотреть результат каждого.</p>
+          <a className="onboarding-success-link" href="/dashboard">
+            Перейти в кабинет
+          </a>
         </div>
       </div>
     );

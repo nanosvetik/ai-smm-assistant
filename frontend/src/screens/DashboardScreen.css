@@ -1,0 +1,28 @@
+.dashboard-screen {
+  min-height: 100vh;
+  display: flex;
+  gap: 48px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 24px 96px;
+}
+
+.dashboard-loading {
+  color: var(--color-muted);
+  padding: 40px 24px;
+}
+
+.dashboard-no-session {
+  max-width: 420px;
+  text-align: center;
+  margin: 15vh auto 0;
+}
+
+.dashboard-no-session h1 {
+  font-size: 26px;
+  margin-bottom: 12px;
+}
+
+.dashboard-no-session p {
+  color: var(--color-muted);
+}
