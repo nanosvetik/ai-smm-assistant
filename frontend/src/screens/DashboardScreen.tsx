@@ -29,6 +29,7 @@ export function DashboardScreen() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [results, setResults] = useState<Record<string, StageResult>>({});
+  const [secondaryResults, setSecondaryResults] = useState<Record<string, AgentResult | null>>({});
   const [activeKey, setActiveKey] = useState<string>(STAGES[0].key);
 
   useEffect(() => {
@@ -54,6 +55,15 @@ export function DashboardScreen() {
         const resultMap = Object.fromEntries(entries);
         setResults(resultMap);
 
+        const secondaryStages = stages.filter((s) => s.secondaryAgentSlug);
+        const secondaryEntries = await Promise.all(
+          secondaryStages.map(async (stage): Promise<[string, AgentResult | null]> => [
+            stage.key,
+            await getAgentResult(stage.secondaryAgentSlug!),
+          ])
+        );
+        setSecondaryResults(Object.fromEntries(secondaryEntries));
+
         const firstNotDone = stages.find((s) => !isDone(s, resultMap[s.key], clientPlatforms));
         setActiveKey((firstNotDone ?? stages[stages.length - 1]).key);
         setLoadState("ready");
@@ -71,6 +81,13 @@ export function DashboardScreen() {
       const byPlatform = (prev[stage.key] ?? {}) as Partial<Record<Platform, AgentResult | null>>;
       return { ...prev, [stage.key]: { ...byPlatform, [platform]: result } };
     });
+
+    // Бэкенд уже дождался и сохранил вспомогательный агент (см.
+    // routes/agents.ts, account-analyzer) — просто перечитываем его.
+    if (stage.secondaryAgentSlug) {
+      const secondary = await getAgentResult(stage.secondaryAgentSlug);
+      setSecondaryResults((prev) => ({ ...prev, [stage.key]: secondary }));
+    }
   }
 
   if (loadState === "loading") {
@@ -115,6 +132,7 @@ export function DashboardScreen() {
         stage={activeStage}
         platforms={platforms}
         result={results[activeStage.key] ?? null}
+        secondaryResult={secondaryResults[activeStage.key] ?? null}
         onRun={(platform) => handleRun(activeStage, platform)}
       />
     </div>

@@ -11,6 +11,7 @@ interface StagePanelProps {
   stage: StageConfig;
   platforms: Platform[];
   result: AgentResult | null | Partial<Record<Platform, AgentResult | null>>;
+  secondaryResult?: AgentResult | null;
   onRun: (platform?: Platform) => Promise<void>;
 }
 
@@ -88,7 +89,28 @@ function RunBlock({
   );
 }
 
-export function StagePanel({ stage, platforms, result, onRun }: StagePanelProps) {
+// Вспомогательный агент без своей кнопки (см. StageConfig.secondaryAgentSlug)
+// — бэкенд запускает его сам вместе с основным, здесь только читаем и
+// показываем результат, ничего не запускаем.
+function SecondaryBlock({ label, result }: { label: string; result: AgentResult | null }) {
+  return (
+    <div className="stage-secondary-block">
+      <h2>{label}</h2>
+      {result ? (
+        <>
+          <StatusLine result={result} />
+          <div className="stage-document">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(result.documentMarkdown)}</ReactMarkdown>
+          </div>
+        </>
+      ) : (
+        <p className="stage-empty">Появится вместе со следующим запуском этапа выше.</p>
+      )}
+    </div>
+  );
+}
+
+export function StagePanel({ stage, platforms, result, secondaryResult, onRun }: StagePanelProps) {
   const emptyHint = `Пока не запускали — нажмите «Запустить» ниже, чтобы получить первый результат.`;
 
   return (
@@ -113,6 +135,10 @@ export function StagePanel({ stage, platforms, result, onRun }: StagePanelProps)
         </div>
       ) : (
         <RunBlock result={result as AgentResult | null} onRun={() => onRun()} runLabel="Запустить" emptyHint={emptyHint} />
+      )}
+
+      {stage.secondaryAgentSlug && (
+        <SecondaryBlock label={stage.secondaryLabel ?? stage.secondaryAgentSlug} result={secondaryResult ?? null} />
       )}
     </div>
   );

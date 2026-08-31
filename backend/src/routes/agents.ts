@@ -124,9 +124,20 @@ agentsRouter.get("/agents/competitor-analyzer", async (req, res) => {
 // Запуск account-analyzer — реальный платный вызов OpenRouter (DeepSeek V4
 // Flash) поверх постов, собранных парсером (backend/src/parsers). Каждый
 // запрос — новая версия Анализа своего аккаунта, старые не перезаписываются.
+// Решение сессии: заодно всегда дёргаем profile-header-analyzer (Claude
+// Sonnet vision, own-ссылки — тот же вход, ничего дополнительного не нужно) —
+// у него нет своей кнопки в сайдбаре (см. открытые вопросы в CLAUDE.md), а
+// без этого он никогда не запускался бы в реальном дашборде. Параллельно
+// через Promise.all, его ошибка не должна ронять ответ account-analyzer —
+// это опциональный вход для account-packager, не обязательный этап.
 agentsRouter.post("/agents/account-analyzer", async (req, res) => {
   try {
-    const profile = await runAccountAnalyzer(req.clientId!);
+    const [profile] = await Promise.all([
+      runAccountAnalyzer(req.clientId!),
+      runProfileHeaderAnalyzer(req.clientId!).catch((err) => {
+        console.error("[agents] profile-header-analyzer (авто, вместе с account-analyzer) failed:", err);
+      }),
+    ]);
     res.status(201).json(profile);
   } catch (err) {
     if (err instanceof OwnLinksMissingError) {

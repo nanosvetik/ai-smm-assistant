@@ -12,6 +12,13 @@ export interface StageConfig {
   agentSlug: string;
   needsPlatform: boolean;
   vkOnly: boolean;
+  // Опциональный вспомогательный агент без своей кнопки (см. CLAUDE.md,
+  // "Открытые вопросы" — visual-style-analyzer/profile-header-analyzer не
+  // запускались никогда в реальном дашборде). Бэкенд дёргает его сам вместе
+  // с основным агентом этапа; здесь только для отображения результата
+  // вторым блоком, если он есть.
+  secondaryAgentSlug?: string;
+  secondaryLabel?: string;
 }
 
 export const STAGES: StageConfig[] = [
@@ -38,6 +45,8 @@ export const STAGES: StageConfig[] = [
     agentSlug: "account-analyzer",
     needsPlatform: false,
     vkOnly: false,
+    secondaryAgentSlug: "profile-header-analyzer",
+    secondaryLabel: "Аудит шапки профиля",
   },
   {
     key: "competitor-analyzer",
