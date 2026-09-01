@@ -11,11 +11,12 @@ import { CompetitorLinksMissingError, runCompetitorAnalyzer } from "../agents/co
 import { OwnLinksMissingError as ProfileHeaderOwnLinksMissingError, runProfileHeaderAnalyzer } from "../agents/profileHeaderAnalyzer.js";
 import { PrerequisitesMissingError, runAccountPackager } from "../agents/accountPackager.js";
 import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, runContentPlanner } from "../agents/contentPlanner.js";
-import { PlatformNotInPlanError, PrerequisitesMissingError as CopywriterPrerequisitesMissingError, runCopywriter } from "../agents/copywriter.js";
+import { PlatformNotInPlanError, PrerequisitesMissingError as CopywriterPrerequisitesMissingError } from "../agents/copywriter.js";
 import { ReferencesMissingError, runVisualStyleAnalyzer } from "../agents/visualStyleAnalyzer.js";
 import { PrerequisitesMissingError as VisualGeneratorPrerequisitesMissingError, runVisualGenerator } from "../agents/visualGenerator.js";
-import { PrerequisitesMissingError as ReelsWriterPrerequisitesMissingError, ReelsNotAvailableError, runReelsWriter } from "../agents/reelsWriter.js";
+import { PrerequisitesMissingError as ReelsWriterPrerequisitesMissingError, ReelsNotAvailableError } from "../agents/reelsWriter.js";
 import { PrerequisitesMissingError as EditorInChiefPrerequisitesMissingError, runEditorInChief } from "../agents/editorInChief.js";
+import { runReviewedCopywriter, runReviewedReelsWriter } from "../agents/reviewedContent.js";
 import { runFullPipeline } from "../agents/pipeline.js";
 
 export const agentsRouter = Router();
@@ -276,6 +277,11 @@ const copywriterRequestSchema = z.object({
 // Запуск copywriter — реальный платный вызов OpenRouter (DeepSeek V4 Flash)
 // поверх Контент-плана и Упаковки профиля, для одной площадки и дня из
 // плана. Каждая площадка версионируется отдельно (см. схему copywriter_posts).
+// Идёт через runReviewedCopywriter (см. reviewedContent.ts), не голый
+// runCopywriter — раньше эта ручка (единственный путь генерации поста из
+// кабинета, run-all к UI не подключён) вообще не проходила через
+// editor-in-chief, хотя автопроверка табу/стоп-слов/нейрослопа — часть
+// ключевого УТП продукта, не опциональная деталь (см. раздел 5 спецификации).
 agentsRouter.post("/agents/copywriter", async (req, res) => {
   const parsed = copywriterRequestSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -284,8 +290,12 @@ agentsRouter.post("/agents/copywriter", async (req, res) => {
   }
 
   try {
-    const post = await runCopywriter(req.clientId!, parsed.data.platform, parsed.data.day);
-    res.status(201).json(post);
+    const { content, needsManualReview } = await runReviewedCopywriter(
+      req.clientId!,
+      parsed.data.platform,
+      parsed.data.day
+    );
+    res.status(201).json({ ...content, needsManualReview });
   } catch (err) {
     if (err instanceof CopywriterPrerequisitesMissingError) {
       res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
@@ -416,11 +426,14 @@ agentsRouter.get("/agents/visual-generator", async (req, res) => {
 // поверх Контент-плана и Упаковки профиля. Reels в этом продукте существуют
 // только для ВК — если ВК нет в реальных площадках клиента, падает
 // ReelsNotAvailableError до вызова модели. Без параметра площадки: сценарий
-// один на клиента, версионируется без разбивки по площадкам.
+// один на клиента, версионируется без разбивки по площадкам. Идёт через
+// runReviewedReelsWriter (см. reviewedContent.ts) — тот же аргумент, что и у
+// copywriter выше: это единственный путь генерации сценария из кабинета, и он
+// обязан проходить editor-in-chief, а не только run-all.
 agentsRouter.post("/agents/reels-writer", async (req, res) => {
   try {
-    const script = await runReelsWriter(req.clientId!);
-    res.status(201).json(script);
+    const { content, needsManualReview } = await runReviewedReelsWriter(req.clientId!);
+    res.status(201).json({ ...content, needsManualReview });
   } catch (err) {
     if (err instanceof ReelsWriterPrerequisitesMissingError) {
       res.status(400).json({ error: "prerequisites_missing", missing: err.missing });

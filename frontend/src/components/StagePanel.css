@@ -60,6 +60,13 @@
   margin: 4px 0 0;
 }
 
+.stage-status-warning {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a13b3b;
+  margin: 6px 0 0;
+}
+
 .stage-document {
   background: var(--color-bg);
   border-radius: var(--radius-card);

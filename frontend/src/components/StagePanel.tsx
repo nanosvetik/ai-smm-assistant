@@ -35,6 +35,7 @@ interface StagePanelProps {
 
 function StatusLine({ result }: { result: AgentResult }) {
   const isDraft = result.status.startsWith("черновик");
+  const needsManualReview = result.needsManualReview === true;
   return (
     <div className="stage-status-block">
       <p className="stage-status-line">
@@ -42,6 +43,12 @@ function StatusLine({ result }: { result: AgentResult }) {
       </p>
       {isDraft && (
         <p className="stage-status-note">Черновик — это честность инструмента при неполных данных, не ошибка.</p>
+      )}
+      {needsManualReview && (
+        <p className="stage-status-warning">
+          Редактор дважды нашёл нарушения (табу, стоп-слова или нейрослоп) и не смог их снять автоматически —
+          проверьте текст вручную перед использованием.
+        </p>
       )}
     </div>
   );
@@ -99,7 +106,9 @@ function RunBlock({
           <div className="stage-progress-track">
             <div className="stage-progress-bar" />
           </div>
-          <p className="stage-progress-text">Работаем над документом — обычно 1–3 минуты. Не закрывайте вкладку.</p>
+          <p className="stage-progress-text">
+            {stage.progressHint ?? "Работаем над документом — обычно 1–3 минуты. Не закрывайте вкладку."}
+          </p>
         </div>
       )}
       {error && <p className="stage-error">{error}</p>}

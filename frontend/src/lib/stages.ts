@@ -19,6 +19,11 @@ export interface StageConfig {
   // вторым блоком, если он есть.
   secondaryAgentSlug?: string;
   secondaryLabel?: string;
+  // Переопределяет дефолтный текст под прогресс-баром (StagePanel.tsx) —
+  // нужен там, где реальное время заметно отличается от обычных 1–3 минут
+  // (copywriter/reels-writer теперь идут через editor-in-chief с возможной
+  // одной автоматической перегенерацией, см. reviewedContent.ts на бэкенде).
+  progressHint?: string;
 }
 
 export const STAGES: StageConfig[] = [
@@ -79,6 +84,7 @@ export const STAGES: StageConfig[] = [
     agentSlug: "copywriter",
     needsPlatform: true,
     vkOnly: false,
+    progressHint: "Пишем текст и сразу проверяем его редактором — обычно 2–5 минут. Не закрывайте вкладку.",
   },
   {
     key: "visual-generator",
@@ -95,6 +101,7 @@ export const STAGES: StageConfig[] = [
     agentSlug: "reels-writer",
     needsPlatform: false,
     vkOnly: true,
+    progressHint: "Пишем сценарий и сразу проверяем его редактором — обычно 2–5 минут. Не закрывайте вкладку.",
   },
 ];
 
