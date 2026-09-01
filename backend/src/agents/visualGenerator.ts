@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { copywriterPosts, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
+import { copywriterPosts, visualGeneratorPrompts } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
+import { ensureVisualStyleProfile } from "./visualStyleAnalyzer.js";
 import { generateId } from "../lib/tokens.js";
 
 const MODEL = "deepseek/deepseek-v4-flash";
@@ -28,7 +29,7 @@ function weakestStatus(statuses: Status[]): Status {
 
 function buildContext(
   post: typeof copywriterPosts.$inferSelect,
-  visualProfile: typeof visualStyleProfiles.$inferSelect | undefined
+  visualProfile: Awaited<ReturnType<typeof ensureVisualStyleProfile>>
 ): string {
   return `# Текст поста (статус: ${post.status})
 ${post.documentMarkdown}
@@ -53,12 +54,7 @@ export async function runVisualGenerator(clientId: string, platform: Platform) {
     throw new PrerequisitesMissingError(["copywriter"]);
   }
 
-  const [visualProfile] = await db
-    .select()
-    .from(visualStyleProfiles)
-    .where(eq(visualStyleProfiles.clientId, clientId))
-    .orderBy(desc(visualStyleProfiles.version))
-    .limit(1);
+  const visualProfile = await ensureVisualStyleProfile(clientId);
 
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
   const userMessage = buildContext(post, visualProfile);

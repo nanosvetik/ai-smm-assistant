@@ -132,3 +132,30 @@ export async function runVisualStyleAnalyzer(clientId: string) {
   const [row] = await db.select().from(visualStyleProfiles).where(eq(visualStyleProfiles.id, id)).limit(1);
   return row;
 }
+
+// Точечное решение открытого вопроса «visual-style-analyzer никогда не
+// запускается через реальный кабинет» (см. CLAUDE.md) — вызывается
+// consumer'ами профиля (visualGenerator.ts, reelsVideoGenerator.ts), не
+// отдельной кнопкой в сайдбаре. Референсы клиента загружаются только один
+// раз на онбординге (нет флоу их добавления из кабинета), поэтому повторный
+// анализ на каждый клик «Сгенерировать» не дал бы новых данных — запускаем
+// автоматически только один раз, если профиля ещё нет, дальше переиспользуем
+// сохранённую версию (тот же принцип экономии, что и во всех платных
+// агентах — не звать модель повторно там, где вход не может измениться).
+export async function ensureVisualStyleProfile(clientId: string) {
+  const [existing] = await db
+    .select()
+    .from(visualStyleProfiles)
+    .where(eq(visualStyleProfiles.clientId, clientId))
+    .orderBy(desc(visualStyleProfiles.version))
+    .limit(1);
+  if (existing) return existing;
+
+  try {
+    return await runVisualStyleAnalyzer(clientId);
+  } catch (err) {
+    if (err instanceof ReferencesMissingError) return undefined;
+    console.error("[agents] visual-style-analyzer (авто, вместе с генерацией промпта) failed:", err);
+    return undefined;
+  }
+}

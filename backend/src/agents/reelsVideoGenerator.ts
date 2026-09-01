@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { reelsScripts, reelsVideoPrompts, visualStyleProfiles } from "../db/schema.js";
+import { reelsScripts, reelsVideoPrompts } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
+import { ensureVisualStyleProfile } from "./visualStyleAnalyzer.js";
 import { generateId } from "../lib/tokens.js";
 
 // deepseek-v4-flash — вход тут текст (сценарий), не изображения, vision не
@@ -28,7 +29,7 @@ function weakestStatus(statuses: Status[]): Status {
 
 function buildContext(
   script: typeof reelsScripts.$inferSelect,
-  visualProfile: typeof visualStyleProfiles.$inferSelect | undefined
+  visualProfile: Awaited<ReturnType<typeof ensureVisualStyleProfile>>
 ): string {
   return `# Сценарий рилса (статус: ${script.status})
 ${script.documentMarkdown}
@@ -56,12 +57,7 @@ export async function runReelsVideoGenerator(clientId: string) {
     throw new PrerequisitesMissingError(["reels-writer"]);
   }
 
-  const [visualProfile] = await db
-    .select()
-    .from(visualStyleProfiles)
-    .where(eq(visualStyleProfiles.clientId, clientId))
-    .orderBy(desc(visualStyleProfiles.version))
-    .limit(1);
+  const visualProfile = await ensureVisualStyleProfile(clientId);
 
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
   const userMessage = buildContext(script, visualProfile);
