@@ -112,3 +112,34 @@ export function runAgent(agentSlug: string, body?: Record<string, unknown>): Pro
     body: JSON.stringify(body ?? {}),
   });
 }
+
+// Реальный вызов generate_image (раздел 3, Шаг 4 спецификации) — платная
+// операция за отдельной кнопкой «Сгенерировать», не часть обычного
+// AgentResult (нет статуса боевой/черновик, это медиа-артефакт, не документ).
+export interface GeneratedImage {
+  version: number;
+  platform: Platform;
+  visualPromptVersion: number;
+  model: string;
+  cost: number | null;
+  publicUrl: string;
+  createdAt: string;
+}
+
+export function generateImage(platform: Platform): Promise<GeneratedImage> {
+  return request<GeneratedImage>("/agents/generate-image", {
+    method: "POST",
+    body: JSON.stringify({ platform }),
+  });
+}
+
+export async function getGeneratedImage(platform: Platform): Promise<GeneratedImage | null> {
+  try {
+    return await request<GeneratedImage>(`/agents/generate-image?${new URLSearchParams({ platform })}`, {
+      method: "GET",
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}

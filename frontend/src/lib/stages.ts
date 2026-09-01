@@ -89,7 +89,7 @@ export const STAGES: StageConfig[] = [
   {
     key: "visual-generator",
     label: "Изображения",
-    description: "Промпт для картинки к посту — в стиле, который подходит именно вам.",
+    description: "Иллюстрация к посту в стиле, который подходит именно вам.",
     agentSlug: "visual-generator",
     needsPlatform: true,
     vkOnly: false,

@@ -7,6 +7,7 @@ import { stripFrontmatter } from "../lib/markdown";
 import { parseContentPlanData } from "../lib/planData";
 import { Button } from "./Button";
 import { ContentPlanGrid } from "./ContentPlanGrid";
+import { ImageGenerationBlock } from "./ImageGenerationBlock";
 import "./StagePanel.css";
 
 // content-planner — единственный этап с собственной сеткой вместо сырого
@@ -147,19 +148,31 @@ export function StagePanel({ stage, platforms, result, secondaryResult, onRun }:
 
       {stage.needsPlatform ? (
         <div className="stage-platforms">
-          {platforms.map((platform, index) => (
-            <div className="stage-platform-block" key={platform}>
-              {index > 0 && <div className="stage-platform-divider" />}
-              <h2>{PLATFORM_LABELS[platform]}</h2>
-              <RunBlock
-                stage={stage}
-                result={(result as Partial<Record<Platform, AgentResult | null>>)?.[platform] ?? null}
-                onRun={() => onRun(platform)}
-                runLabel="Запустить"
-                emptyHint={emptyHint}
-              />
-            </div>
-          ))}
+          {platforms.map((platform, index) => {
+            const platformResult = (result as Partial<Record<Platform, AgentResult | null>>)?.[platform] ?? null;
+            return (
+              <div className="stage-platform-block" key={platform}>
+                {index > 0 && <div className="stage-platform-divider" />}
+                <h2>{PLATFORM_LABELS[platform]}</h2>
+                {stage.key === "visual-generator" ? (
+                  // Промпт для картинки — внутренняя деталь, клиенту не
+                  // показываем (ни русское описание, ни английский промпт,
+                  // ни модель/цену) — только готовую иллюстрацию. Кнопка
+                  // одна: молча пишет свежий промпт и сразу генерирует
+                  // картинку, см. ImageGenerationBlock.tsx.
+                  <ImageGenerationBlock platform={platform} onGeneratePrompt={() => onRun(platform)} />
+                ) : (
+                  <RunBlock
+                    stage={stage}
+                    result={platformResult}
+                    onRun={() => onRun(platform)}
+                    runLabel="Запустить"
+                    emptyHint={emptyHint}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <RunBlock

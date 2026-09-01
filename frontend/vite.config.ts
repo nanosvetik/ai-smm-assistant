@@ -12,6 +12,12 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      // Сгенерированные картинки (workspace/06-images/...) — та же
+      // same-origin логика, что и /api, см. index.ts на бэкенде.
+      "/media": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 });

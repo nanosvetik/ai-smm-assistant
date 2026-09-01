@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, editorialReviews, expertiseProfiles, packagingProfiles, profileHeaderProfiles, reelsScripts, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, editorialReviews, expertiseProfiles, generatedImages, packagingProfiles, profileHeaderProfiles, reelsScripts, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
@@ -14,6 +14,11 @@ import { PrerequisitesMissingError as ContentPlannerPrerequisitesMissingError, r
 import { PlatformNotInPlanError, PrerequisitesMissingError as CopywriterPrerequisitesMissingError } from "../agents/copywriter.js";
 import { ReferencesMissingError, runVisualStyleAnalyzer } from "../agents/visualStyleAnalyzer.js";
 import { PrerequisitesMissingError as VisualGeneratorPrerequisitesMissingError, runVisualGenerator } from "../agents/visualGenerator.js";
+import {
+  PrerequisitesMissingError as ImageGeneratorPrerequisitesMissingError,
+  PromptNotFoundError,
+  runImageGenerator,
+} from "../agents/imageGenerator.js";
 import { PrerequisitesMissingError as ReelsWriterPrerequisitesMissingError, ReelsNotAvailableError } from "../agents/reelsWriter.js";
 import { PrerequisitesMissingError as EditorInChiefPrerequisitesMissingError, runEditorInChief } from "../agents/editorInChief.js";
 import { runReviewedCopywriter, runReviewedReelsWriter } from "../agents/reviewedContent.js";
@@ -420,6 +425,60 @@ agentsRouter.get("/agents/visual-generator", async (req, res) => {
     return;
   }
   res.json(prompt);
+});
+
+const generateImageRequestSchema = z.object({ platform: z.enum(["telegram", "vk"]) });
+
+// Запуск реального вызова generate_image (раздел 3, Шаг 4 спецификации —
+// гейт подтверждения перед медиа-генерацией) поверх последнего промпта
+// visual-generator для площадки. Отдельная ручка, не встроена в
+// /agents/visual-generator — текст промпта дешёвый и генерируется сразу без
+// подтверждения, реальный вызов картиночной модели — дорогая операция за
+// явным кликом «Сгенерировать» (см. ImageGenerationBlock.tsx на фронтенде).
+agentsRouter.post("/agents/generate-image", async (req, res) => {
+  const parsed = generateImageRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const image = await runImageGenerator(req.clientId!, parsed.data.platform);
+    res.status(201).json(image);
+  } catch (err) {
+    if (err instanceof ImageGeneratorPrerequisitesMissingError) {
+      res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    if (err instanceof PromptNotFoundError) {
+      res.status(502).json({ error: "prompt_not_found" });
+      return;
+    }
+    console.error("[agents] generate-image failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая сгенерированная картинка для указанной площадки.
+agentsRouter.get("/agents/generate-image", async (req, res) => {
+  const parsed = generateImageRequestSchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", details: parsed.error.flatten() });
+    return;
+  }
+
+  const [image] = await db
+    .select()
+    .from(generatedImages)
+    .where(and(eq(generatedImages.clientId, req.clientId!), eq(generatedImages.platform, parsed.data.platform)))
+    .orderBy(desc(generatedImages.version))
+    .limit(1);
+
+  if (!image) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(image);
 });
 
 // Запуск reels-writer — реальный платный вызов OpenRouter (DeepSeek V4 Pro)

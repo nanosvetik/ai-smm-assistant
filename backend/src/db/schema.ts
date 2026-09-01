@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 
 export const clients = sqliteTable("clients", {
   id: text("id").primaryKey(),
@@ -285,6 +285,29 @@ export const visualGeneratorPrompts = sqliteTable("visual_generator_prompts", {
   copywriterPostVersion: integer("copywriter_post_version").notNull(),
   visualStyleProfileVersion: integer("visual_style_profile_version"),
   documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+// Реальный вызов generate_image (раздел 3, Шаг 4 — гейт подтверждения перед
+// медиа-генерацией, решение сессии 2026-09-01) поверх промпта из
+// visual_generator_prompts. Append-only по версиям, версия — на пару
+// (client, platform), тем же принципом, что и visual_generator_prompts. Нет
+// колонки status — это не текстовый документ с оценкой боевой/черновик,
+// просто медиа-артефакт. visualPromptVersion — трассировка, каким именно
+// промптом сгенерирована эта картинка (если промпт перегенерировали — старая
+// картинка не подсовывается под новый промпт, см. ImageGenerationBlock.tsx).
+export const generatedImages = sqliteTable("generated_images", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  platform: text("platform", { enum: ["telegram", "vk"] }).notNull(),
+  version: integer("version").notNull(),
+  visualPromptVersion: integer("visual_prompt_version").notNull(),
+  model: text("model").notNull(),
+  cost: real("cost"),
+  filePath: text("file_path").notNull(),
+  publicUrl: text("public_url").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 

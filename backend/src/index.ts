@@ -19,6 +19,12 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+// Раздача сгенерированных картинок (workspace/06-images/...) — на деве, вместо
+// nginx/Caddy, которые в проде возьмут эту роль на себя (раздел 7
+// спецификации). Тот же __dirname-паттерн, что уже используется в этом файле
+// для .env (два уровня вверх от backend/src — корень проекта).
+app.use("/media", express.static(path.join(__dirname, "..", "..", "workspace")));
+
 app.use("/api", accessRouter);
 app.use("/api", onboardingRouter);
 app.use("/api", agentsRouter);
