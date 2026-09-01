@@ -1,3 +1,6 @@
+/* Общий стиль для ImageGenerationBlock.tsx и VideoGenerationBlock.tsx —
+   классы одни и те же для картинки/видео, не дублируем идентичный CSS. */
+
 .image-generation-block {
   margin-top: 20px;
   padding-top: 20px;
@@ -8,7 +11,8 @@
   margin-bottom: 16px;
 }
 
-.image-generation-preview img {
+.image-generation-preview img,
+.image-generation-preview video {
   max-width: 100%;
   border-radius: var(--radius-card);
   display: block;

@@ -143,3 +143,31 @@ export async function getGeneratedImage(platform: Platform): Promise<GeneratedIm
     throw err;
   }
 }
+
+// Реальный вызов generate_video (раздел 3, Шаг 4 спецификации) — зеркало
+// GeneratedImage, без platform (Reels — один клип на клиента, как и сам
+// сценарий рилса).
+export interface GeneratedVideo {
+  version: number;
+  videoPromptVersion: number;
+  model: string;
+  cost: number | null;
+  publicUrl: string;
+  createdAt: string;
+}
+
+export function generateVideo(): Promise<GeneratedVideo> {
+  return request<GeneratedVideo>("/agents/generate-video", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function getGeneratedVideo(): Promise<GeneratedVideo | null> {
+  try {
+    return await request<GeneratedVideo>("/agents/generate-video", { method: "GET" });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}

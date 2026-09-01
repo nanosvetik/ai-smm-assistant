@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { generatedImages, visualGeneratorPrompts } from "../db/schema.js";
-import { extractImagePrompt } from "../lib/imagePrompt.js";
+import { extractPromptBlock } from "../lib/promptBlock.js";
 import { generateImageFile } from "../lib/imageGeneration.js";
 import { generateId } from "../lib/tokens.js";
 
@@ -39,7 +39,7 @@ export async function runImageGenerator(clientId: string, platform: Platform) {
     throw new PrerequisitesMissingError(["visual-generator"]);
   }
 
-  const prompt = extractImagePrompt(promptRow.documentMarkdown);
+  const prompt = extractPromptBlock(promptRow.documentMarkdown);
   if (!prompt) {
     throw new PromptNotFoundError();
   }

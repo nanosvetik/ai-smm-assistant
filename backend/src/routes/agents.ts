@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, editorialReviews, expertiseProfiles, generatedImages, packagingProfiles, profileHeaderProfiles, reelsScripts, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
+import { accountStyleProfiles, audienceProfiles, competitorAnalysisProfiles, contentPlans, copywriterPosts, editorialReviews, expertiseProfiles, generatedImages, generatedVideos, packagingProfiles, profileHeaderProfiles, reelsScripts, reelsVideoPrompts, visualGeneratorPrompts, visualStyleProfiles } from "../db/schema.js";
 import { OnboardingMissingError, runAudienceUnpacker } from "../agents/audienceUnpacker.js";
 import { OnboardingMissingError as ExpertiseOnboardingMissingError, runExpertiseUnpacker } from "../agents/expertiseUnpacker.js";
 import { OwnLinksMissingError, runAccountAnalyzer } from "../agents/accountAnalyzer.js";
@@ -19,6 +19,15 @@ import {
   PromptNotFoundError,
   runImageGenerator,
 } from "../agents/imageGenerator.js";
+import {
+  PrerequisitesMissingError as ReelsVideoGeneratorPrerequisitesMissingError,
+  runReelsVideoGenerator,
+} from "../agents/reelsVideoGenerator.js";
+import {
+  PrerequisitesMissingError as VideoGeneratorPrerequisitesMissingError,
+  PromptNotFoundError as VideoPromptNotFoundError,
+  runVideoGenerator,
+} from "../agents/videoGenerator.js";
 import { PrerequisitesMissingError as ReelsWriterPrerequisitesMissingError, ReelsNotAvailableError } from "../agents/reelsWriter.js";
 import { PrerequisitesMissingError as EditorInChiefPrerequisitesMissingError, runEditorInChief } from "../agents/editorInChief.js";
 import { runReviewedCopywriter, runReviewedReelsWriter } from "../agents/reviewedContent.js";
@@ -521,6 +530,80 @@ agentsRouter.get("/agents/reels-writer", async (req, res) => {
     return;
   }
   res.json(script);
+});
+
+// Запуск reels-video-generator — реальный платный вызов OpenRouter (DeepSeek
+// V4 Flash) поверх последнего сценария reels-writer, пишет промпт для
+// generate_video (визуализация хука, см. prompts/reels-video-generator.md).
+// Без параметра площадки — Reels один на клиента, как и reels_scripts.
+agentsRouter.post("/agents/reels-video-generator", async (req, res) => {
+  try {
+    const prompt = await runReelsVideoGenerator(req.clientId!);
+    res.status(201).json(prompt);
+  } catch (err) {
+    if (err instanceof ReelsVideoGeneratorPrerequisitesMissingError) {
+      res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    console.error("[agents] reels-video-generator failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая версия видео-промпта клиента.
+agentsRouter.get("/agents/reels-video-generator", async (req, res) => {
+  const [prompt] = await db
+    .select()
+    .from(reelsVideoPrompts)
+    .where(eq(reelsVideoPrompts.clientId, req.clientId!))
+    .orderBy(desc(reelsVideoPrompts.version))
+    .limit(1);
+
+  if (!prompt) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(prompt);
+});
+
+// Запуск реального вызова generate_video (раздел 3, Шаг 4 спецификации —
+// видео-часть гейта подтверждения) поверх последнего промпта
+// reels-video-generator. Отдельная ручка, не встроена в
+// /agents/reels-video-generator — тот же принцип, что и с картинками:
+// текст промпта дешёвый и генерируется сразу, реальный вызов видео-модели —
+// дорогая операция за явным кликом «Сгенерировать» (см. VideoGenerationBlock.tsx).
+agentsRouter.post("/agents/generate-video", async (req, res) => {
+  try {
+    const video = await runVideoGenerator(req.clientId!);
+    res.status(201).json(video);
+  } catch (err) {
+    if (err instanceof VideoGeneratorPrerequisitesMissingError) {
+      res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
+      return;
+    }
+    if (err instanceof VideoPromptNotFoundError) {
+      res.status(502).json({ error: "prompt_not_found" });
+      return;
+    }
+    console.error("[agents] generate-video failed:", err);
+    res.status(502).json({ error: "agent_call_failed" });
+  }
+});
+
+// Последняя (по номеру версии) сохранённая сгенерированная видео-запись клиента.
+agentsRouter.get("/agents/generate-video", async (req, res) => {
+  const [video] = await db
+    .select()
+    .from(generatedVideos)
+    .where(eq(generatedVideos.clientId, req.clientId!))
+    .orderBy(desc(generatedVideos.version))
+    .limit(1);
+
+  if (!video) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(video);
 });
 
 const editorInChiefRequestSchema = z.object({

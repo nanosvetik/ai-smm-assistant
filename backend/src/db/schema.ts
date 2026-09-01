@@ -334,6 +334,44 @@ export const reelsScripts = sqliteTable("reels_scripts", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Результат агента reels-video-generator — промпт для generate_video,
+// визуализирующий только хук сценария (raздел 3, Шаг 4 — видео-часть гейта
+// подтверждения, решение сессии 2026-09-01, зеркало visual_generator_prompts
+// без колонки platform: Reels — один сценарий на клиента, как и reels_scripts).
+// usedVisualProfile — false, если Визуального style-профиля не было на входе.
+export const reelsVideoPrompts = sqliteTable("reels_video_prompts", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["боевой", "черновик-рамка", "черновик-скелет"] }).notNull(),
+  usedVisualProfile: integer("used_visual_profile", { mode: "boolean" }).notNull(),
+  reelsScriptVersion: integer("reels_script_version").notNull(),
+  visualStyleProfileVersion: integer("visual_style_profile_version"),
+  documentMarkdown: text("document_markdown").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+// Реальный вызов generate_video (raздел 3, Шаг 4 — видео-часть гейта
+// подтверждения) поверх промпта из reels_video_prompts. Зеркало
+// generated_images без platform (Reels — один клип на клиента). Сознательно
+// без reference_image/first_frame_url/last_frame_url — только текстовый
+// промпт (см. prompts/reels-video-generator.md и videoGeneration.ts).
+export const generatedVideos = sqliteTable("generated_videos", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  version: integer("version").notNull(),
+  videoPromptVersion: integer("video_prompt_version").notNull(),
+  model: text("model").notNull(),
+  cost: real("cost"),
+  filePath: text("file_path").notNull(),
+  publicUrl: text("public_url").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Результат агента editor-in-chief («Редакторская проверка») — вердикт
 // ok/needs_revision над конкретной версией copywriter_posts или
 // reels_scripts (contentType + reviewedContentVersion). Append-only, версия

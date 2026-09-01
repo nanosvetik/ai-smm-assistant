@@ -8,6 +8,7 @@ import { parseContentPlanData } from "../lib/planData";
 import { Button } from "./Button";
 import { ContentPlanGrid } from "./ContentPlanGrid";
 import { ImageGenerationBlock } from "./ImageGenerationBlock";
+import { VideoGenerationBlock } from "./VideoGenerationBlock";
 import "./StagePanel.css";
 
 // content-planner — единственный этап с собственной сеткой вместо сырого
@@ -175,13 +176,21 @@ export function StagePanel({ stage, platforms, result, secondaryResult, onRun }:
           })}
         </div>
       ) : (
-        <RunBlock
-          stage={stage}
-          result={result as AgentResult | null}
-          onRun={() => onRun()}
-          runLabel="Запустить"
-          emptyHint={emptyHint}
-        />
+        <>
+          <RunBlock
+            stage={stage}
+            result={result as AgentResult | null}
+            onRun={() => onRun()}
+            runLabel="Запустить"
+            emptyHint={emptyHint}
+          />
+          {/* Сценарий рилса (хук/раскадровка/озвучка) — реальный контент для
+              клиента, остаётся видимым как есть (в отличие от промпта
+              картинки, тут скрывать нечего). Видео-промпт для generate_video
+              — уже внутренняя деталь, скрыт тем же принципом, что и у
+              картинок: одна кнопка ниже сценария. */}
+          {stage.key === "reels-writer" && result && <VideoGenerationBlock />}
+        </>
       )}
 
       {stage.secondaryAgentSlug && (
