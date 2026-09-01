@@ -25,6 +25,9 @@ workspace/
 *.log
 npm-debug.log*
 
+# Скриншоты для визуальной проверки Claude Code (не часть проекта)
+screenshot/
+
 # OS / editor
 .DS_Store
 Thumbs.db
