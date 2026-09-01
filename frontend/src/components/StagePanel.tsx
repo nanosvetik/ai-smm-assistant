@@ -4,8 +4,26 @@ import remarkGfm from "remark-gfm";
 import { ApiError, type AgentResult, type Platform } from "../lib/api";
 import { PLATFORM_LABELS, describeMissing, type StageConfig } from "../lib/stages";
 import { stripFrontmatter } from "../lib/markdown";
+import { parseContentPlanData } from "../lib/planData";
 import { Button } from "./Button";
+import { ContentPlanGrid } from "./ContentPlanGrid";
 import "./StagePanel.css";
+
+// content-planner — единственный этап с собственной сеткой вместо сырого
+// markdown-документа (см. lib/planData.ts). Если структурированный JSON-блок
+// не распарсился (модель не выдала валидный блок) — честно откатываемся на
+// обычный рендер документа, не показываем пустую сетку.
+function DocumentBody({ stage, result }: { stage: StageConfig; result: AgentResult }) {
+  if (stage.key === "content-planner") {
+    const plan = parseContentPlanData(result);
+    if (plan) return <ContentPlanGrid plan={plan} />;
+  }
+  return (
+    <div className="stage-document">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(result.documentMarkdown)}</ReactMarkdown>
+    </div>
+  );
+}
 
 interface StagePanelProps {
   stage: StageConfig;
@@ -30,11 +48,13 @@ function StatusLine({ result }: { result: AgentResult }) {
 }
 
 function RunBlock({
+  stage,
   result,
   onRun,
   runLabel,
   emptyHint,
 }: {
+  stage: StageConfig;
   result: AgentResult | null;
   onRun: () => Promise<void>;
   runLabel: string;
@@ -66,9 +86,7 @@ function RunBlock({
       {result ? (
         <>
           <StatusLine result={result} />
-          <div className="stage-document">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(result.documentMarkdown)}</ReactMarkdown>
-          </div>
+          <DocumentBody stage={stage} result={result} />
         </>
       ) : !isRunning ? (
         <p className="stage-empty">{emptyHint}</p>
@@ -125,6 +143,7 @@ export function StagePanel({ stage, platforms, result, secondaryResult, onRun }:
               {index > 0 && <div className="stage-platform-divider" />}
               <h2>{PLATFORM_LABELS[platform]}</h2>
               <RunBlock
+                stage={stage}
                 result={(result as Partial<Record<Platform, AgentResult | null>>)?.[platform] ?? null}
                 onRun={() => onRun(platform)}
                 runLabel="Запустить"
@@ -134,7 +153,13 @@ export function StagePanel({ stage, platforms, result, secondaryResult, onRun }:
           ))}
         </div>
       ) : (
-        <RunBlock result={result as AgentResult | null} onRun={() => onRun()} runLabel="Запустить" emptyHint={emptyHint} />
+        <RunBlock
+          stage={stage}
+          result={result as AgentResult | null}
+          onRun={() => onRun()}
+          runLabel="Запустить"
+          emptyHint={emptyHint}
+        />
       )}
 
       {stage.secondaryAgentSlug && (

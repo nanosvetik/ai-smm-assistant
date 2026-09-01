@@ -5,6 +5,7 @@ import { db } from "../db/index.js";
 import { competitorAnalysisProfiles, contentPlans, packagingProfiles, socialLinks } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
+import { parsePlanData } from "../lib/planData.js";
 import { generateId } from "../lib/tokens.js";
 
 const MODEL = "deepseek/deepseek-v4-flash";
@@ -84,6 +85,10 @@ export async function runContentPlanner(clientId: string) {
 
   const status = weakestStatus([packaging.status as Status, competitorAnalysis.status as Status]);
   const document = replaceFrontmatterField(rawDocument, "статус", status);
+  // null, если модель не выдала валидный JSON-блок — кабинет тогда честно
+  // откатывается на рендер documentMarkdown целиком (см. planData.ts), это
+  // не блокирует сохранение самого плана.
+  const planData = parsePlanData(document);
 
   const [latest] = await db
     .select({ version: contentPlans.version })
@@ -104,6 +109,8 @@ export async function runContentPlanner(clientId: string) {
     packagingProfileVersion: packaging.version,
     competitorAnalysisProfileVersion: competitorAnalysis.version,
     documentMarkdown: document,
+    planItems: planData ? JSON.stringify(planData.posts) : null,
+    reelsIdeas: planData ? JSON.stringify(planData.reels) : null,
     createdAt: now,
   });
 

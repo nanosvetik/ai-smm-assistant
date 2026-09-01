@@ -1,0 +1,118 @@
+.content-plan-grid {
+  background: var(--color-bg);
+  border-radius: var(--radius-card);
+  box-shadow: 0 2px 16px rgba(31, 36, 32, 0.06);
+  padding: 28px;
+  margin-bottom: 20px;
+}
+
+.content-plan-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.content-plan-table-wrap {
+  overflow-x: auto;
+}
+
+.content-plan-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.content-plan-table th,
+.content-plan-table td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border-soft);
+  vertical-align: top;
+}
+
+.content-plan-table th {
+  font-weight: 600;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.content-plan-weekday {
+  font-weight: 600;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.content-plan-week-row td {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-plum);
+  background: var(--color-plum-soft);
+  border-bottom: none;
+  padding-top: 16px;
+  padding-bottom: 6px;
+}
+
+.content-plan-cell {
+  min-width: 220px;
+}
+
+.content-plan-title {
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.content-plan-theme {
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.content-plan-pattern {
+  font-size: 13px;
+  color: var(--color-emerald);
+  margin: 6px 0 0;
+}
+
+.content-plan-empty-cell {
+  color: var(--color-muted);
+}
+
+.content-plan-empty {
+  color: var(--color-muted);
+}
+
+.content-plan-reels {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.content-plan-reels h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.content-plan-reels ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.content-plan-reels-item {
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: var(--color-plum-soft);
+}
+
+.content-plan-reels-hook {
+  font-family: var(--font-display);
+  font-style: italic;
+  margin: 0 0 6px;
+}
+
+.content-plan-reels-meta {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0;
+}

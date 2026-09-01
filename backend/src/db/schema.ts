@@ -235,6 +235,13 @@ export const contentPlans = sqliteTable("content_plans", {
   packagingProfileVersion: integer("packaging_profile_version").notNull(),
   competitorAnalysisProfileVersion: integer("competitor_analysis_profile_version").notNull(),
   documentMarkdown: text("document_markdown").notNull(),
+  // Структурированная JSON-версия плана (posts/reels), см. lib/planData.ts —
+  // распарсена из ```json-блока, который выдаёт модель рядом с frontmatter
+  // (prompts/content-planner.md). null, если модель не выдала валидный блок —
+  // кабинет тогда честно откатывается на прежний рендер documentMarkdown
+  // целиком, без сетки/выгрузки, а не подставляет пустую сетку молча.
+  planItems: text("plan_items"),
+  reelsIdeas: text("reels_ideas"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
