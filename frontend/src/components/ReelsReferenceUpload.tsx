@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { DragEvent } from "react";
-import { getReelsReferences, uploadReelsReference, type ReelsReferenceFile } from "../lib/api";
+import { deleteReelsReference, getReelsReferences, uploadReelsReference, type ReelsReferenceFile } from "../lib/api";
 import "./ReelsReferenceUpload.css";
 
 // Референсы для конкретного рилса — показывается только после того, как
@@ -14,6 +14,7 @@ export function ReelsReferenceUpload() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isOver, setIsOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -40,6 +41,19 @@ export function ReelsReferenceUpload() {
     }
   }
 
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    setError(null);
+    try {
+      await deleteReelsReference(id);
+      setReferences((r) => r.filter((ref) => ref.id !== id));
+    } catch {
+      setError("Не удалось удалить фото. Попробуйте ещё раз.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   if (!isLoaded) return null;
 
   return (
@@ -47,7 +61,8 @@ export function ReelsReferenceUpload() {
       <h2>Фото для этого рилса</h2>
       <p className="reels-reference-hint">
         Если есть кадры, которые подходят к этому сценарию — добавьте их. Необязательно. Пока фото только
-        сохраняются при клиенте — в самой генерации видео они не участвуют.
+        сохраняются при клиенте — в самой генерации видео они не участвуют. Загруженное можно удалить и
+        загрузить заново, если передумали.
       </p>
       <div
         className={`reels-reference-zone ${isOver ? "reels-reference-zone-over" : ""}`}
@@ -83,9 +98,19 @@ export function ReelsReferenceUpload() {
       {references.length > 0 && (
         <div className="reels-reference-grid">
           {references.map((ref) => (
-            <span key={ref.id} className="reels-reference-file">
-              {ref.originalFilename}
-            </span>
+            <div key={ref.id} className="reels-reference-thumb">
+              <img src={ref.publicUrl} alt={ref.originalFilename} />
+              <button
+                type="button"
+                className="reels-reference-remove"
+                onClick={() => handleDelete(ref.id)}
+                disabled={deletingId === ref.id}
+                aria-label={`Удалить ${ref.originalFilename}`}
+                title="Удалить"
+              >
+                {deletingId === ref.id ? "…" : "✕"}
+              </button>
+            </div>
           ))}
         </div>
       )}

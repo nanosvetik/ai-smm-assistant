@@ -52,16 +52,51 @@
 }
 
 .reels-reference-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 10px;
   margin-top: 12px;
 }
 
-.reels-reference-file {
-  font-size: 13px;
-  color: var(--color-muted);
-  background: var(--color-plum-soft);
+.reels-reference-thumb {
+  position: relative;
+  aspect-ratio: 1;
   border-radius: var(--radius-card);
-  padding: 4px 10px;
+  overflow: hidden;
+  background: var(--color-plum-soft);
+}
+
+.reels-reference-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.reels-reference-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(31, 36, 32, 0.65);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.reels-reference-remove:hover {
+  background: #a13b3b;
+}
+
+.reels-reference-remove:disabled {
+  cursor: default;
+  opacity: 0.7;
 }

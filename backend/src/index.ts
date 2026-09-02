@@ -26,6 +26,13 @@ app.get("/health", (_req, res) => {
 // для .env (два уровня вверх от backend/src — корень проекта).
 app.use("/media", express.static(path.join(__dirname, "..", "..", "workspace")));
 
+// Раздача референсов клиента (workspace-у зеркально) — нужна, чтобы фронтенд
+// мог показать превью загруженных фото на странице «Рилсы» (см.
+// ReelsReferenceUpload.tsx). Публичные URL для референсов и так заложены
+// разделом 7 спецификации, тот же принцип, что и для сгенерированного медиа.
+const UPLOAD_ROOT = process.env.UPLOAD_DIR ?? path.join(__dirname, "..", "..", "uploads");
+app.use("/uploads", express.static(UPLOAD_ROOT));
+
 app.use("/api", accessRouter);
 app.use("/api", onboardingRouter);
 app.use("/api", agentsRouter);

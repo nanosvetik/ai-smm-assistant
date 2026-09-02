@@ -37,6 +37,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const body = await res.json().catch(() => ({ error: "unknown_error" }));
     throw new ApiError(res.status, body.error ?? "unknown_error", body.missing);
   }
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -69,6 +70,7 @@ export interface ReelsReferenceFile {
   id: string;
   filePath: string;
   originalFilename: string;
+  publicUrl: string;
 }
 
 export function getReelsReferences() {
@@ -82,6 +84,10 @@ export async function uploadReelsReference(file: File) {
     method: "POST",
     body: formData,
   });
+}
+
+export function deleteReelsReference(id: string) {
+  return request<void>(`/reels-references/${id}`, { method: "DELETE" });
 }
 
 export type AgentStatus = "боевой" | "черновик-рамка" | "черновик-скелет";

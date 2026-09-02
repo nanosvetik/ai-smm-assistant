@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import multer from "multer";
 import path from "node:path";
 import { mkdirSync } from "node:fs";
+import { unlink } from "node:fs/promises";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
 import { reelsReferenceFiles } from "../db/schema.js";
@@ -48,11 +49,31 @@ reelsReferencesRouter.post("/reels-references", upload.single("file"), async (re
     createdAt: new Date(),
   });
 
-  res.status(201).json({ id, filePath: relativePath, originalFilename: req.file.originalname });
+  res.status(201).json({ id, filePath: relativePath, originalFilename: req.file.originalname, publicUrl: `/uploads/${relativePath}` });
 });
 
 reelsReferencesRouter.get("/reels-references", async (req, res) => {
   const clientId = req.clientId!;
   const references = await db.select().from(reelsReferenceFiles).where(eq(reelsReferenceFiles.clientId, clientId));
-  res.json(references);
+  res.json(references.map((ref) => ({ ...ref, publicUrl: `/uploads/${ref.filePath}` })));
+});
+
+// Удаление одного референса — клиент передумал / загрузил не то фото. Сверяем
+// clientId, чтобы нельзя было удалить чужой файл, зная только id.
+reelsReferencesRouter.delete("/reels-references/:id", async (req, res) => {
+  const clientId = req.clientId!;
+  const [ref] = await db
+    .select()
+    .from(reelsReferenceFiles)
+    .where(and(eq(reelsReferenceFiles.id, req.params.id), eq(reelsReferenceFiles.clientId, clientId)))
+    .limit(1);
+  if (!ref) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+
+  await db.delete(reelsReferenceFiles).where(eq(reelsReferenceFiles.id, ref.id));
+  await unlink(path.join(UPLOAD_ROOT, ...ref.filePath.split("/"))).catch(() => {});
+
+  res.status(204).end();
 });
