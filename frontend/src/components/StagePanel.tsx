@@ -21,6 +21,25 @@ function DocumentBody({ stage, result }: { stage: StageConfig; result: AgentResu
     const plan = parseContentPlanData(result);
     if (plan) return <ContentPlanGrid plan={plan} />;
   }
+  // Готовый пост — единственный момент в кабинете, где клиент видит реальный
+  // текст в своём голосе, а не рабочий аналитический документ. Отдельная
+  // карточка (по образцу InterviewCard.tsx: кружок-„ рядом с текстом через
+  // flex, не позади него — см. известный баг в OnboardingScreen про
+  // абсолютное позиционирование) и editorial-serif для самого текста,
+  // остальные документы (ЦА, экспертность и т.д.) — прежний нейтральный вид,
+  // им скорость и ясность важнее, не убеждение (design-brief-ателье.md, Бриф 2).
+  if (stage.key === "copywriter") {
+    return (
+      <div className="stage-document-post">
+        <span className="stage-document-post-mark" aria-hidden="true">
+          „
+        </span>
+        <div className="stage-document-post-body">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(result.documentMarkdown)}</ReactMarkdown>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="stage-document">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(result.documentMarkdown)}</ReactMarkdown>
