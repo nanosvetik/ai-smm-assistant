@@ -1,0 +1,67 @@
+.reels-reference-upload {
+  margin: 20px 0 28px;
+}
+
+.reels-reference-upload h2 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-muted);
+  margin-bottom: 4px;
+}
+
+.reels-reference-hint {
+  color: var(--color-muted);
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.reels-reference-zone {
+  border: 1.5px dashed var(--color-border-soft);
+  border-radius: var(--radius-card);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--color-plum-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  transition: border-color 0.15s ease;
+}
+
+.reels-reference-zone:hover,
+.reels-reference-zone-over {
+  border-color: var(--color-plum);
+}
+
+.reels-reference-zone-label {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.reels-reference-zone-status {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.reels-reference-error {
+  color: #a13b3b;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.reels-reference-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.reels-reference-file {
+  font-size: 13px;
+  color: var(--color-muted);
+  background: var(--color-plum-soft);
+  border-radius: var(--radius-card);
+  padding: 4px 10px;
+}

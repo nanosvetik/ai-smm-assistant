@@ -127,6 +127,13 @@
       "when": 1788284494865,
       "tag": "0017_giant_green_goblin",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1788369947269,
+      "tag": "0018_small_revanche",
+      "breakpoints": true
     }
   ]
 }

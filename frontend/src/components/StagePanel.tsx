@@ -8,6 +8,7 @@ import { parseContentPlanData } from "../lib/planData";
 import { Button } from "./Button";
 import { ContentPlanGrid } from "./ContentPlanGrid";
 import { ImageGenerationBlock } from "./ImageGenerationBlock";
+import { ReelsReferenceUpload } from "./ReelsReferenceUpload";
 import { VideoGenerationBlock } from "./VideoGenerationBlock";
 import "./StagePanel.css";
 
@@ -186,10 +187,18 @@ export function StagePanel({ stage, platforms, result, secondaryResult, onRun }:
           />
           {/* Сценарий рилса (хук/раскадровка/озвучка) — реальный контент для
               клиента, остаётся видимым как есть (в отличие от промпта
-              картинки, тут скрывать нечего). Видео-промпт для generate_video
-              — уже внутренняя деталь, скрыт тем же принципом, что и у
-              картинок: одна кнопка ниже сценария. */}
-          {stage.key === "reels-writer" && result && <VideoGenerationBlock />}
+              картинки, тут скрывать нечего). После сценария — референсы,
+              подходящие именно к нему (см. ReelsReferenceUpload.tsx), клиент
+              добавляет их уже глядя на готовый сценарий, не заранее вслепую
+              на онбординге. Видео-промпт для generate_video — внутренняя
+              деталь, скрыт тем же принципом, что и у картинок: одна кнопка
+              ниже сценария и референсов. */}
+          {stage.key === "reels-writer" && result && (
+            <>
+              <ReelsReferenceUpload />
+              <VideoGenerationBlock />
+            </>
+          )}
         </>
       )}
 

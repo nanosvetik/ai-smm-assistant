@@ -409,3 +409,18 @@ export const referenceFiles = sqliteTable("reference_files", {
   originalFilename: text("original_filename").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
+
+// Референсы, добавляемые клиентом на странице рилса, уже после того, как
+// сценарий готов — не онбординговые reference_files (те собирались до
+// сценария, без понимания, к чему они относятся). Одна зона загрузки, без
+// категорий. Пока только хранение — без вызова visual-style-analyzer и без
+// передачи в generate_video (reference_image/first_frame_url), см. CLAUDE.md.
+export const reelsReferenceFiles = sqliteTable("reels_reference_files", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id),
+  filePath: text("file_path").notNull(),
+  originalFilename: text("original_filename").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});

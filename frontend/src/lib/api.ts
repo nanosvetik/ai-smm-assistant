@@ -16,21 +16,10 @@ export interface Questionnaire {
   expertPath: string;
 }
 
-export const REFERENCE_CATEGORIES = ["before_after", "workspace", "showcase", "products", "process"] as const;
-export type ReferenceCategory = (typeof REFERENCE_CATEGORIES)[number];
-
-export interface ReferenceFile {
-  id: string;
-  category: ReferenceCategory;
-  filePath: string;
-  originalFilename: string;
-}
-
 export interface OnboardingState {
   questionnaire: (Questionnaire & { salesModel: SalesModel }) | null;
   ownLinks: SocialLink[];
   competitorLinks: SocialLink[];
-  references: ReferenceFile[];
 }
 
 class ApiError extends Error {
@@ -72,10 +61,24 @@ export function submitOnboarding(data: {
   });
 }
 
-export async function uploadReference(category: ReferenceCategory, file: File) {
+// Референсы, добавляемые на странице рилса после того, как сценарий уже
+// написан — отдельно от онбординга (см. CLAUDE.md). Одна зона загрузки, без
+// категорий. Пока только хранение — не используются ни visual-style-analyzer,
+// ни в generate_video.
+export interface ReelsReferenceFile {
+  id: string;
+  filePath: string;
+  originalFilename: string;
+}
+
+export function getReelsReferences() {
+  return request<ReelsReferenceFile[]>("/reels-references");
+}
+
+export async function uploadReelsReference(file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  return request<{ id: string; category: ReferenceCategory; filePath: string }>(`/onboarding/references/${category}`, {
+  return request<ReelsReferenceFile>("/reels-references", {
     method: "POST",
     body: formData,
   });

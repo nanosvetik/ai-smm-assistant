@@ -4,13 +4,11 @@ import {
   getOnboarding,
   submitOnboarding,
   type Questionnaire,
-  type ReferenceFile,
   type SalesModel,
   type SocialLink,
 } from "../lib/api";
 import { LinksField } from "../components/LinksField";
 import { InterviewCard } from "../components/InterviewCard";
-import { ReferenceDropzone } from "../components/ReferenceDropzone";
 import { Button } from "../components/Button";
 import "./OnboardingScreen.css";
 
@@ -34,7 +32,6 @@ export function OnboardingScreen() {
     { platform: "telegram", url: "" },
   ]);
   const [questionnaire, setQuestionnaire] = useState<Questionnaire>(EMPTY_QUESTIONNAIRE);
-  const [references, setReferences] = useState<ReferenceFile[]>([]);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -58,7 +55,6 @@ export function OnboardingScreen() {
             clientPhrases: state.questionnaire.clientPhrases ?? "",
           });
         }
-        setReferences(state.references);
         setLoadState("ready");
       })
       .catch((err) => {
@@ -155,8 +151,7 @@ export function OnboardingScreen() {
             ваш метод и черновик первых постов — отвечайте своими словами, чем живее, тем точнее получится.
           </p>
           <p className="onboarding-roadmap">
-            Дальше по порядку: <span>формат работы</span> · <span>ваши каналы</span> · <span>несколько вопросов</span> ·{" "}
-            <span>материалы для контента</span>
+            Дальше по порядку: <span>формат работы</span> · <span>ваши каналы</span> · <span>несколько вопросов</span>
           </p>
         </header>
 
@@ -204,11 +199,6 @@ export function OnboardingScreen() {
         <section className="onboarding-section">
           <h2 className="onboarding-eyebrow">Теперь — несколько вопросов</h2>
           <InterviewCard values={questionnaire} onChange={updateQuestionnaire} />
-        </section>
-
-        <section className="onboarding-section">
-          <h2 className="onboarding-eyebrow">Материалы для контента</h2>
-          <ReferenceDropzone references={references} onUploaded={(file) => setReferences((r) => [...r, file])} />
         </section>
 
         {validationError && <p className="onboarding-validation-error">{validationError}</p>}
