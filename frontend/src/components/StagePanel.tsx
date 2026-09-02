@@ -101,9 +101,16 @@ function RunBlock({
       ) : !isRunning ? (
         <p className="stage-empty">{emptyHint}</p>
       ) : null}
-      <Button type="button" variant={result ? "quiet" : "primary"} onClick={handleClick} disabled={isRunning}>
-        {isRunning ? "Запускаем…" : result ? "Переделать" : runLabel}
-      </Button>
+      {/* Кнопка живёт только до первого результата — «Переделать» убрана
+          решением сессии 2026-09-02 (по прямому запросу пользователя): это
+          демо, повторные платные вызовы за счёт пользователя недопустимы, и
+          для «честных» этапов (ЦА, экспертность и т.д.) это ещё и вопрос
+          принципа — не перевыбирать факт до устраивающего ответа. */}
+      {!result && (
+        <Button type="button" variant="primary" onClick={handleClick} disabled={isRunning}>
+          {isRunning ? "Запускаем…" : runLabel}
+        </Button>
+      )}
       {isRunning && (
         <div className="stage-progress" role="status" aria-live="polite">
           <div className="stage-progress-track">

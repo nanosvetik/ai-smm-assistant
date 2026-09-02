@@ -62,9 +62,14 @@ export function VideoGenerationBlock() {
             Скачать видео
           </a>
         )}
-        <Button type="button" variant={video ? "quiet" : "primary"} onClick={handleGenerate} disabled={isGenerating}>
-          {isGenerating ? "Генерируем…" : video ? "Сгенерировать заново" : "Сгенерировать видео"}
-        </Button>
+        {/* Без повторной генерации — решение сессии 2026-09-02: видео
+            заметно дороже картинки ($0.84 против $0.04 за вызов), «Сгенерировать
+            заново» здесь не оставляем, в отличие от ImageGenerationBlock.tsx. */}
+        {!video && (
+          <Button type="button" variant="primary" onClick={handleGenerate} disabled={isGenerating}>
+            {isGenerating ? "Генерируем…" : "Сгенерировать видео"}
+          </Button>
+        )}
       </div>
       {isGenerating && (
         <p className="image-generation-hint">Готовим видео — обычно 1–3 минуты. Не закрывайте вкладку.</p>
