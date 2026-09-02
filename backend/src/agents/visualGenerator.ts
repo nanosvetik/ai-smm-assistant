@@ -2,10 +2,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { copywriterPosts, visualGeneratorPrompts } from "../db/schema.js";
+import { copywriterPosts, packagingProfiles, visualGeneratorPrompts } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
-import { ensureVisualStyleProfile } from "./visualStyleAnalyzer.js";
 import { generateId } from "../lib/tokens.js";
 
 const MODEL = "deepseek/deepseek-v4-flash";
@@ -29,17 +28,13 @@ function weakestStatus(statuses: Status[]): Status {
 
 function buildContext(
   post: typeof copywriterPosts.$inferSelect,
-  visualProfile: Awaited<ReturnType<typeof ensureVisualStyleProfile>>
+  packaging: typeof packagingProfiles.$inferSelect
 ): string {
   return `# Текст поста (статус: ${post.status})
 ${post.documentMarkdown}
 
-# Визуальный style-профиль
-${
-  visualProfile
-    ? `(статус: ${visualProfile.status})\n${visualProfile.documentMarkdown}`
-    : "не создан — клиент не загружал референсы, работай по нейтральному дефолту (см. Шаг 3 промпта)."
-}
+# Упаковка профиля (статус: ${packaging.status})
+${packaging.documentMarkdown}
 `;
 }
 
@@ -50,23 +45,29 @@ export async function runVisualGenerator(clientId: string, platform: Platform) {
     .where(and(eq(copywriterPosts.clientId, clientId), eq(copywriterPosts.platform, platform)))
     .orderBy(desc(copywriterPosts.version))
     .limit(1);
-  if (!post) {
-    throw new PrerequisitesMissingError(["copywriter"]);
+  const [packaging] = await db
+    .select()
+    .from(packagingProfiles)
+    .where(eq(packagingProfiles.clientId, clientId))
+    .orderBy(desc(packagingProfiles.version))
+    .limit(1);
+
+  const missing: string[] = [];
+  if (!post) missing.push("copywriter");
+  if (!packaging) missing.push("account-packager");
+  if (missing.length > 0 || !post || !packaging) {
+    throw new PrerequisitesMissingError(missing);
   }
 
-  const visualProfile = await ensureVisualStyleProfile(clientId);
-
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
-  const userMessage = buildContext(post, visualProfile);
+  const userMessage = buildContext(post, packaging);
 
   const rawDocument = await chatCompletion(MODEL, [
     { role: "system", content: systemPrompt },
     { role: "user", content: userMessage },
   ]);
 
-  const status = weakestStatus(
-    visualProfile ? [post.status as Status, visualProfile.status as Status] : [post.status as Status]
-  );
+  const status = weakestStatus([post.status as Status, packaging.status as Status]);
   const document = replaceFrontmatterField(rawDocument, "статус", status);
 
   const [latest] = await db
@@ -85,9 +86,8 @@ export async function runVisualGenerator(clientId: string, platform: Platform) {
     platform,
     version: nextVersion,
     status,
-    usedVisualProfile: Boolean(visualProfile),
     copywriterPostVersion: post.version,
-    visualStyleProfileVersion: visualProfile?.version ?? null,
+    packagingProfileVersion: packaging.version,
     documentMarkdown: document,
     createdAt: now,
   });
