@@ -7,7 +7,7 @@ import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 
-const MODEL = "deepseek/deepseek-v4-flash";
+const MODEL = "deepseek/deepseek-v4-pro";
 const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "copywriter.md");
 
 const STATUSES = ["боевой", "черновик-рамка", "черновик-скелет"] as const;

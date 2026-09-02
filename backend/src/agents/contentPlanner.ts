@@ -8,7 +8,7 @@ import { replaceFrontmatterField } from "../lib/frontmatter.js";
 import { parsePlanData } from "../lib/planData.js";
 import { generateId } from "../lib/tokens.js";
 
-const MODEL = "deepseek/deepseek-v4-flash";
+const MODEL = "deepseek/deepseek-v4-pro";
 const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "content-planner.md");
 
 const STATUSES = ["боевой", "черновик-рамка", "черновик-скелет"] as const;
