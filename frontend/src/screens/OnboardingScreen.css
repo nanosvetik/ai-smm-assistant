@@ -27,18 +27,25 @@
   color: var(--color-muted);
 }
 
-.onboarding-success-note {
-  margin-top: 16px;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 14px;
+.onboarding-success .onboarding-success-note {
+  margin: 24px 0;
+  padding: 16px 20px;
+  background: var(--color-plum-soft);
+  border-left: 3px solid var(--color-plum);
+  border-radius: var(--radius-card);
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.onboarding-success-note strong {
+  color: var(--color-plum);
 }
 
 .onboarding-success-link {
   display: inline-block;
-  margin-top: 12px;
-  color: var(--color-plum);
-  font-weight: 500;
+  margin-top: 4px;
 }
 
 .onboarding-form {
