@@ -74,6 +74,14 @@ export function DashboardScreen() {
       });
   }, []);
 
+  // Смена этапа — не настоящая навигация браузера (SPA), скролл страницы сам
+  // не сбрасывается: без этого новый документ открывался бы с той же
+  // прокрутки, на которой читали предыдущий (найдено пользователем).
+  function handleSelectStage(key: string) {
+    setActiveKey(key);
+    window.scrollTo(0, 0);
+  }
+
   async function handleRun(stage: StageConfig, platform?: Platform) {
     const result = await runAgent(stage.agentSlug, requestBody(stage, platform));
     setResults((prev) => {
@@ -127,7 +135,7 @@ export function DashboardScreen() {
 
   return (
     <div className="dashboard-screen">
-      <Sidebar stages={visibleStages} progress={progress} activeKey={activeStage.key} onSelect={setActiveKey} />
+      <Sidebar stages={visibleStages} progress={progress} activeKey={activeStage.key} onSelect={handleSelectStage} />
       <StagePanel
         stage={activeStage}
         platforms={platforms}
