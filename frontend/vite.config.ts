@@ -18,6 +18,13 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      // Референсы клиента (uploads/...) — та же логика, что и /media. Без
+      // этого прокси браузер стучится в сам Vite-сервер вместо бэкенда,
+      // <img> получает не картинку, а страницу фронтенда (или 404).
+      "/uploads": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 });

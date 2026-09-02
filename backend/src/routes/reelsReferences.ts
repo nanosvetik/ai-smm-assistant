@@ -40,16 +40,20 @@ reelsReferencesRouter.post("/reels-references", upload.single("file"), async (re
   const clientId = req.clientId!;
   const id = generateId();
   const relativePath = path.relative(UPLOAD_ROOT, req.file.path).split(path.sep).join("/");
+  // busboy декодирует заголовки multipart как latin1 по умолчанию — кириллица
+  // в имени файла приходит побайтово корректной, но интерпретированной не той
+  // кодировкой (кракозябры). Перекодируем обратно в UTF-8.
+  const originalFilename = Buffer.from(req.file.originalname, "latin1").toString("utf8");
 
   await db.insert(reelsReferenceFiles).values({
     id,
     clientId,
     filePath: relativePath,
-    originalFilename: req.file.originalname,
+    originalFilename,
     createdAt: new Date(),
   });
 
-  res.status(201).json({ id, filePath: relativePath, originalFilename: req.file.originalname, publicUrl: `/uploads/${relativePath}` });
+  res.status(201).json({ id, filePath: relativePath, originalFilename, publicUrl: `/uploads/${relativePath}` });
 });
 
 reelsReferencesRouter.get("/reels-references", async (req, res) => {
