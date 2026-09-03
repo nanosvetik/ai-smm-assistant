@@ -13,6 +13,10 @@ export const accessRequests = sqliteTable("access_requests", {
   id: text("id").primaryKey(),
   contactType: text("contact_type", { enum: ["email", "telegram", "vk"] }).notNull(),
   contactValue: text("contact_value").notNull(),
+  // Необязательное имя — минимальные лид-данные с лендинга (решение сессии
+  // 2026-09-03), не полные перс. данные. Nullable — форма ещё не собирает
+  // его сама (лендинг не реализован), заявки могут приходить и без него.
+  name: text("name"),
   status: text("status", { enum: ["pending", "approved", "rejected"] })
     .notNull()
     .default("pending"),

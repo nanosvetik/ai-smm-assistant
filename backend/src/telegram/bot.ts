@@ -21,12 +21,15 @@ async function handleUpdate(update: TelegramUpdate) {
 
   try {
     if (action === "approve") {
-      const { request, link, expiresAt } = await approveRequest(requestId);
+      const { request, link, expiresAt, delivered } = await approveRequest(requestId);
       await answerCallbackQuery(cb.id, "Одобрено");
+      const deliveryLine = delivered
+        ? `Ссылка отправлена клиенту на ${request.contactValue}.`
+        : `Отправьте ссылку клиенту вручную (${request.contactType}:${request.contactValue}):\n${link}`;
       await editMessageText(
         cb.message.chat.id,
         cb.message.message_id,
-        `✅ Одобрено: ${request.contactType}:${request.contactValue}\n\nСсылка:\n${link}\nДействует до: ${expiresAt.toISOString()}`
+        `✅ Одобрено: ${request.contactType}:${request.contactValue}\n\n${deliveryLine}\nДействует до: ${expiresAt.toISOString()}`
       );
     } else {
       const { request } = await rejectRequest(requestId);

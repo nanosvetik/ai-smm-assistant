@@ -7,8 +7,12 @@ if (!requestId) {
 }
 
 try {
-  const { request, link, expiresAt } = await approveRequest(requestId);
-  console.log(`Approved. Send this link to ${request.contactType}:${request.contactValue}`);
+  const { request, link, expiresAt, delivered } = await approveRequest(requestId);
+  if (delivered) {
+    console.log(`Approved. Link auto-sent to ${request.contactType}:${request.contactValue}`);
+  } else {
+    console.log(`Approved. Send this link to ${request.contactType}:${request.contactValue}`);
+  }
   console.log(link);
   console.log(`Expires: ${expiresAt.toISOString()}`);
 } catch (err) {

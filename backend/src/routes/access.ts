@@ -11,6 +11,9 @@ export const accessRouter = Router();
 const accessRequestSchema = z.object({
   contactType: z.enum(["email", "telegram", "vk"]),
   contactValue: z.string().trim().min(1).max(200),
+  // Необязательные лид-данные (решение сессии 2026-09-03) — не полные перс.
+  // данные, максимум имя для будущей связи/предложений.
+  name: z.string().trim().min(1).max(100).optional(),
 });
 
 // Публичный эндпоинт с лендинга ("Получить демо-доступ"). Ничего не выдаёт
@@ -28,13 +31,15 @@ accessRouter.post("/access-requests", async (req, res) => {
     id,
     contactType: parsed.data.contactType,
     contactValue: parsed.data.contactValue,
+    name: parsed.data.name ?? null,
     status: "pending",
     createdAt: new Date(),
   });
 
+  const namePrefix = parsed.data.name ? `${parsed.data.name} · ` : "";
   if (isTelegramConfigured()) {
     sendAdminMessage(
-      `Новая заявка на демо-доступ\n[${parsed.data.contactType}] ${parsed.data.contactValue}`,
+      `Новая заявка на демо-доступ\n${namePrefix}[${parsed.data.contactType}] ${parsed.data.contactValue}`,
       [
         [
           { text: "✅ Одобрить", callback_data: `approve:${id}` },

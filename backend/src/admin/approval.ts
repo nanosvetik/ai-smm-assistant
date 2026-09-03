@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accessLinks, accessRequests, clients } from "../db/schema.js";
 import { generateId, generateToken, ONBOARDING_LINK_TTL_MS } from "../lib/tokens.js";
+import { isEmailConfigured, sendMail } from "../lib/email.js";
 
 export class ApprovalError extends Error {}
 
@@ -44,7 +45,33 @@ export async function approveRequest(requestId: string) {
   // В деве это порт Vite (5173), не бэкенда (3000); в проде — один домен на
   // оба сервиса через nginx/Caddy (раздел 7 спецификации), тот же BASE_URL.
   const baseUrl = process.env.BASE_URL ?? "http://localhost:5173";
-  return { request, link: `${baseUrl}/onboarding/${token}`, expiresAt };
+  const link = `${baseUrl}/onboarding/${token}`;
+
+  // Доставка клиенту тем же каналом, что он указал (решение сессии
+  // 2026-09-03, раздел 2 спецификации) — сейчас реализован только email,
+  // Telegram/ВК ещё не умеют писать клиенту первыми (см. CLAUDE.md,
+  // "Текущее состояние бэкенда"). Ручным должно остаться только решение
+  // одобрить/отклонить, не пересылка ссылки — но пока канал не покрыт,
+  // честно возвращаем delivered: false, а не притворяемся, что отправили.
+  // Ошибка отправки (SMTP недоступен, неверные креды и т.п.) не должна
+  // откатывать уже сохранённое одобрение — клиент и ссылка в БД реальны
+  // независимо от письма, оператор просто получит delivered: false и
+  // перешлёт ссылку вручную, как и раньше.
+  let delivered = false;
+  if (request.contactType === "email" && isEmailConfigured()) {
+    try {
+      await sendMail(
+        request.contactValue,
+        "Доступ к демо готов",
+        `Здравствуйте${request.name ? `, ${request.name}` : ""}!\n\nВаша ссылка для начала работы:\n${link}\n\nСсылка одноразовая и действует до ${expiresAt.toISOString()}.`
+      );
+      delivered = true;
+    } catch (err) {
+      console.error("[approval] email delivery failed:", err);
+    }
+  }
+
+  return { request, link, expiresAt, delivered };
 }
 
 export async function rejectRequest(requestId: string) {
