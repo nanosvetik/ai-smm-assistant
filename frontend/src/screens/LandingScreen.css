@@ -1,0 +1,357 @@
+.landing-screen {
+  background: var(--color-bg);
+  overflow-x: clip;
+}
+
+.landing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 28px 24px 0;
+}
+
+.landing-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--color-plum);
+}
+
+/* ---------- Hero ---------- */
+
+.landing-hero {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 56px;
+  align-items: start;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 72px 24px 96px;
+}
+
+.landing-hero-text h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(34px, 4.6vw, 56px);
+  line-height: 1.1;
+  margin-bottom: 24px;
+  max-width: 16ch;
+}
+
+.landing-hero-sub {
+  color: var(--color-muted);
+  font-size: 18px;
+  line-height: 1.6;
+  max-width: 50ch;
+  margin-bottom: 32px;
+}
+
+/* Смещена вниз относительно заголовка — асимметрия по Брифу 1, не выровнена
+   строго по верхней линии текстового блока. */
+.landing-hero-card {
+  margin-top: 88px;
+}
+
+.landing-hero-card-role {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-muted);
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+
+.landing-post-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: var(--color-plum-soft);
+  border-radius: var(--radius-card);
+  padding: 28px;
+  box-shadow: 0 16px 40px rgba(74, 37, 69, 0.14);
+}
+
+.landing-post-mark {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-plum);
+  color: var(--color-bg);
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-post-text {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.landing-post-text p {
+  margin: 0 0 12px;
+}
+
+.landing-post-text p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 880px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+    padding-top: 48px;
+  }
+
+  .landing-hero-card {
+    margin-top: 0;
+  }
+
+  .landing-hero-text h1 {
+    max-width: none;
+  }
+}
+
+/* ---------- Общие секции ---------- */
+
+.landing-section {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+
+.landing-section h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(26px, 3vw, 34px);
+  margin-bottom: 40px;
+  max-width: 20ch;
+}
+
+/* ---------- Как это работает ---------- */
+
+.landing-how-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  max-width: 640px;
+}
+
+.landing-how-item {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.landing-how-number {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: 40px;
+  color: var(--color-ochre);
+  line-height: 1;
+  width: 48px;
+}
+
+.landing-how-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+
+.landing-how-note {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+/* ---------- Это только начало (roadmap) ---------- */
+
+.landing-roadmap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.landing-roadmap-list li {
+  padding-left: 20px;
+  position: relative;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.landing-roadmap-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-ochre);
+}
+
+/* ---------- Контраст «не шаблон» ---------- */
+
+.landing-contrast-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.landing-contrast-label {
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.landing-contrast-generic {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-card);
+  padding: 28px;
+}
+
+.landing-contrast-generic .landing-contrast-label {
+  color: var(--color-muted);
+}
+
+.landing-contrast-generic p:not(.landing-contrast-label) {
+  color: var(--color-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.landing-contrast-voice {
+  background: var(--color-plum-soft);
+  border-radius: var(--radius-card);
+  padding: 28px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.landing-contrast-voice .landing-contrast-label {
+  color: var(--color-plum);
+  font-family: var(--font-body);
+}
+
+.landing-contrast-voice p:not(.landing-contrast-label) {
+  margin: 0 0 12px;
+}
+
+.landing-contrast-voice p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 700px) {
+  .landing-contrast-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- CTA / форма ---------- */
+
+.landing-cta-inner {
+  max-width: 480px;
+}
+
+.landing-cta-sub {
+  color: var(--color-muted);
+  margin: 12px 0 28px;
+  line-height: 1.6;
+}
+
+/* Честная оговорка про объём демо — та же вёрстка, что и
+   .onboarding-success-note (плум-заливка + левая рамка), единственное
+   место на лендинге, где вообще упоминается слово «демо» в этом смысле —
+   остальная страница продаёт продукт целиком, не MVP. */
+.landing-demo-note {
+  margin: 0 0 28px;
+  padding: 16px 20px;
+  background: var(--color-plum-soft);
+  border-left: 3px solid var(--color-plum);
+  border-radius: var(--radius-card);
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.landing-demo-note strong {
+  color: var(--color-plum);
+}
+
+.landing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.landing-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.landing-form-field input {
+  border: 1px solid var(--color-border-soft);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 16px;
+  background: var(--color-bg);
+}
+
+.landing-form-field input:focus-visible {
+  outline: 2px solid var(--color-plum);
+  outline-offset: 2px;
+}
+
+.landing-form-error {
+  color: #a13b3b;
+  margin: 0;
+}
+
+.landing-cta-done {
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1.5;
+  max-width: 46ch;
+}
+
+/* ---------- Подвал ---------- */
+
+.landing-footer {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.landing-footer p {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+/* Начальное состояние для GSAP .from() — без JS (или до его выполнения)
+   контент виден как обычно, класс .js-ready добавляется не нужен: анимация
+   сама выставляет autoAlpha:0 непосредственно перед стартом транзишена,
+   так что на no-JS/при ошибке скрипта контент остаётся видимым по умолчанию. */

@@ -47,6 +47,16 @@ export function exchangeAccessLink(token: string) {
   return request<{ status: "ok"; expiresAt: string }>(`/access/${token}`);
 }
 
+// Заявка с лендинга ("Получить демо-доступ") — только email, см. раздел 2
+// спецификации (решение сессии 2026-09-03). Ничего не выдаёт сразу, заявка
+// ждёт ручного подтверждения оператором.
+export function submitAccessRequest(data: { email: string; name?: string }) {
+  return request<{ id: string; status: "pending" }>("/access-requests", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 export function getOnboarding() {
   return request<OnboardingState>("/onboarding");
 }
