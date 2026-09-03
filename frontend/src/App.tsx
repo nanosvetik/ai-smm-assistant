@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { TokenExchangeScreen } from "./screens/TokenExchangeScreen";
 import { OnboardingScreen } from "./screens/OnboardingScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
+import { ResultsScreen } from "./screens/ResultsScreen";
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <Route path="/onboarding/:token" element={<TokenExchangeScreen />} />
       <Route path="/onboarding" element={<OnboardingScreen />} />
       <Route path="/dashboard" element={<DashboardScreen />} />
+      <Route path="/results/:token" element={<ResultsScreen />} />
       <Route path="*" element={<Navigate to="/onboarding" replace />} />
     </Routes>
   );

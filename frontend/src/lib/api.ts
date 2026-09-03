@@ -180,3 +180,29 @@ export async function getGeneratedVideo(): Promise<GeneratedVideo | null> {
     throw err;
   }
 }
+
+// Read-only ссылка на готовое демо (см. CLAUDE.md, "результат-страница") —
+// не под сессией, токен в URL и есть авторизация. Отдаёт только готовый
+// демо-контент (посты/картинки/рилс), без аналитических документов.
+export interface ResultsPost {
+  platform: Platform;
+  theme: string | null;
+  documentMarkdown: string;
+  imageUrl: string | null;
+}
+
+export interface ResultsReels {
+  theme: string | null;
+  documentMarkdown: string;
+  videoUrl: string | null;
+}
+
+export interface ResultsBundle {
+  platforms: Platform[];
+  posts: ResultsPost[];
+  reels: ResultsReels | null;
+}
+
+export function getResults(token: string) {
+  return request<ResultsBundle>(`/results/${token}`);
+}

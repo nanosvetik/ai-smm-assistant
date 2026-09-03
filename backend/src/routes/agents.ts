@@ -32,6 +32,7 @@ import { PrerequisitesMissingError as ReelsWriterPrerequisitesMissingError, Reel
 import { PrerequisitesMissingError as EditorInChiefPrerequisitesMissingError, runEditorInChief } from "../agents/editorInChief.js";
 import { runReviewedCopywriter, runReviewedReelsWriter } from "../agents/reviewedContent.js";
 import { runFullPipeline } from "../agents/pipeline.js";
+import { ensureResultsLinkSent } from "../agents/resultsDelivery.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -310,6 +311,10 @@ agentsRouter.post("/agents/copywriter", async (req, res) => {
       parsed.data.day
     );
     res.status(201).json({ ...content, needsManualReview });
+    // Fire-and-forget — не блокирует ответ клиенту и не должен ронять его
+    // при ошибке (см. resultsDelivery.ts: идемпотентно, сама решает, готов
+    // ли уже весь текстовый демо-контент под реальные площадки клиента).
+    ensureResultsLinkSent(req.clientId!).catch((err) => console.error("[results] ensureResultsLinkSent failed:", err));
   } catch (err) {
     if (err instanceof CopywriterPrerequisitesMissingError) {
       res.status(400).json({ error: "prerequisites_missing", missing: err.missing });
@@ -502,6 +507,7 @@ agentsRouter.post("/agents/reels-writer", async (req, res) => {
   try {
     const { content, needsManualReview } = await runReviewedReelsWriter(req.clientId!);
     res.status(201).json({ ...content, needsManualReview });
+    ensureResultsLinkSent(req.clientId!).catch((err) => console.error("[results] ensureResultsLinkSent failed:", err));
   } catch (err) {
     if (err instanceof ReelsWriterPrerequisitesMissingError) {
       res.status(400).json({ error: "prerequisites_missing", missing: err.missing });

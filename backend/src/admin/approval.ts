@@ -21,6 +21,7 @@ export async function approveRequest(requestId: string) {
     id: clientId,
     contactType: request.contactType,
     contactValue: request.contactValue,
+    name: request.name,
     createdAt: now,
   });
 

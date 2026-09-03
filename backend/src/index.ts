@@ -7,6 +7,7 @@ import { accessRouter } from "./routes/access.js";
 import { onboardingRouter } from "./routes/onboarding.js";
 import { agentsRouter } from "./routes/agents.js";
 import { reelsReferencesRouter } from "./routes/reelsReferences.js";
+import { resultsRouter } from "./routes/results.js";
 import { startTelegramBot } from "./telegram/bot.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,7 +34,13 @@ app.use("/media", express.static(path.join(__dirname, "..", "..", "workspace")))
 const UPLOAD_ROOT = process.env.UPLOAD_DIR ?? path.join(__dirname, "..", "..", "uploads");
 app.use("/uploads", express.static(UPLOAD_ROOT));
 
+// resultsRouter — до онбординга/agents/reels-references: те три регистрируют
+// requireSession через router.use() без пути, который матчит любой путь,
+// прошедший внутрь роутера, и отвечает 401 сам, не вызывая next() — если бы
+// resultsRouter стоял после них, запрос на /results/:token (без сессии,
+// намеренно — это публичная read-only ссылка) до него бы просто не доходил.
 app.use("/api", accessRouter);
+app.use("/api", resultsRouter);
 app.use("/api", onboardingRouter);
 app.use("/api", agentsRouter);
 app.use("/api", reelsReferencesRouter);

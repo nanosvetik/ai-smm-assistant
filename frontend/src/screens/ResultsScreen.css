@@ -1,0 +1,185 @@
+.results-screen {
+  min-height: 100vh;
+  padding: 64px 24px 96px;
+}
+
+.results-loading {
+  text-align: center;
+  color: var(--color-muted);
+  margin-top: 20vh;
+}
+
+.results-error-card {
+  max-width: 420px;
+  margin: 15vh auto 0;
+  text-align: center;
+}
+
+.results-error-card h1 {
+  font-size: 26px;
+  margin-bottom: 12px;
+}
+
+.results-error-card p {
+  color: var(--color-muted);
+}
+
+/* Асимметрия по Брифу 1: заголовок сдвинут влево, а не отцентрован, и уже
+   контентной колонки ниже — сама витрина шире, hero — нет. */
+.results-hero {
+  max-width: 640px;
+  margin: 0 auto 72px;
+  padding-left: 4%;
+}
+
+.results-eyebrow {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-plum);
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+
+.results-hero h1 {
+  font-size: clamp(32px, 5vw, 48px);
+  margin-bottom: 16px;
+}
+
+.results-hero-sub {
+  color: var(--color-muted);
+  font-size: 17px;
+  max-width: 46ch;
+}
+
+.results-showcase {
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+.results-item-label {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--color-plum);
+  margin: 0 0 4px;
+}
+
+.results-item-theme {
+  font-size: 22px;
+  margin-bottom: 20px;
+  max-width: 44ch;
+}
+
+.results-item-body {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+/* Editorial-ритм: чётные показы разворачиваются местами картинка/текст, не
+   одна и та же раскладка блок за блоком — order на грид-детях, не rtl-хак. */
+.results-item:nth-child(even) .results-post-card {
+  order: 2;
+}
+
+.results-item:nth-child(even) .results-media {
+  order: 1;
+}
+
+@media (max-width: 720px) {
+  .results-item-body {
+    grid-template-columns: 1fr;
+  }
+
+  .results-item:nth-child(even) .results-post-card,
+  .results-item:nth-child(even) .results-media {
+    order: initial;
+  }
+
+  .results-hero {
+    padding-left: 0;
+  }
+}
+
+.results-post-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: var(--color-plum-soft);
+  border-radius: var(--radius-card);
+  padding: 32px;
+}
+
+.results-post-mark {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-plum);
+  color: var(--color-bg);
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.results-post-text {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1.65;
+}
+
+.results-post-text :first-child {
+  margin-top: 0;
+}
+
+.results-post-text :last-child {
+  margin-bottom: 0;
+}
+
+.results-media {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(31, 36, 32, 0.12);
+}
+
+.results-media img,
+.results-media video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.results-media-video {
+  max-width: 320px;
+}
+
+.results-script-details {
+  margin-top: 16px;
+}
+
+.results-script-details summary {
+  cursor: pointer;
+  color: var(--color-plum);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.results-script-body {
+  margin-top: 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius-card);
+  box-shadow: 0 2px 16px rgba(31, 36, 32, 0.06);
+  padding: 24px;
+  line-height: 1.6;
+}

@@ -4,6 +4,10 @@ export const clients = sqliteTable("clients", {
   id: text("id").primaryKey(),
   contactType: text("contact_type", { enum: ["email", "telegram", "vk"] }).notNull(),
   contactValue: text("contact_value").notNull(),
+  // Скопировано из access_requests.name при одобрении заявки (см.
+  // approval.ts) — живёт с клиентом дольше самой заявки, нужно для
+  // персонализации будущих писем (например, автодоставки results-ссылки).
+  name: text("name"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
