@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ApiError, type AgentResult, type Platform } from "../lib/api";
@@ -12,6 +12,64 @@ import { ReelsReferenceUpload } from "./ReelsReferenceUpload";
 import { VideoGenerationBlock } from "./VideoGenerationBlock";
 import "./StagePanel.css";
 
+// Готовый пост — единственный момент в кабинете, где клиент видит реальный
+// текст в своём голосе, а не рабочий аналитический документ. Отдельная
+// карточка (по образцу InterviewCard.tsx: кружок-„ рядом с текстом через
+// flex, не позади него — см. известный баг в OnboardingScreen про
+// абсолютное позиционирование) и editorial-serif для самого текста,
+// остальные документы (ЦА, экспертность и т.д.) — прежний нейтральный вид,
+// им скорость и ясность важнее, не убеждение (design-brief-ателье.md, Бриф 2).
+//
+// «Копировать»/«Скачать» читают текст через ref.innerText, не через
+// stripFrontmatter(documentMarkdown) напрямую — так в буфер/файл идёт то, что
+// клиент реально видит (отрендеренный ReactMarkdown, без ** и прочего
+// markdown-синтаксиса), а не сырой источник. Ручную правку текста сознательно
+// не делаем (решение сессии 2026-09-03) — клиент копирует и правит уже у
+// себя, где ему удобно.
+function PostCard({ documentMarkdown, platform }: { documentMarkdown: string; platform?: string }) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    const text = bodyRef.current?.innerText ?? "";
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleDownload() {
+    const text = bodyRef.current?.innerText ?? "";
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `пост${platform ? `-${platform}` : ""}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <>
+      <div className="stage-document-post">
+        <span className="stage-document-post-mark" aria-hidden="true">
+          „
+        </span>
+        <div className="stage-document-post-body" ref={bodyRef}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(documentMarkdown)}</ReactMarkdown>
+        </div>
+      </div>
+      <div className="stage-document-post-actions">
+        <Button type="button" variant="quiet" onClick={handleCopy}>
+          {copied ? "Скопировано" : "Копировать текст"}
+        </Button>
+        <Button type="button" variant="quiet" onClick={handleDownload}>
+          Скачать текст (.txt)
+        </Button>
+      </div>
+    </>
+  );
+}
+
 // content-planner — единственный этап с собственной сеткой вместо сырого
 // markdown-документа (см. lib/planData.ts). Если структурированный JSON-блок
 // не распарсился (модель не выдала валидный блок) — честно откатываемся на
@@ -21,24 +79,9 @@ function DocumentBody({ stage, result }: { stage: StageConfig; result: AgentResu
     const plan = parseContentPlanData(result);
     if (plan) return <ContentPlanGrid plan={plan} />;
   }
-  // Готовый пост — единственный момент в кабинете, где клиент видит реальный
-  // текст в своём голосе, а не рабочий аналитический документ. Отдельная
-  // карточка (по образцу InterviewCard.tsx: кружок-„ рядом с текстом через
-  // flex, не позади него — см. известный баг в OnboardingScreen про
-  // абсолютное позиционирование) и editorial-serif для самого текста,
-  // остальные документы (ЦА, экспертность и т.д.) — прежний нейтральный вид,
-  // им скорость и ясность важнее, не убеждение (design-brief-ателье.md, Бриф 2).
   if (stage.key === "copywriter") {
-    return (
-      <div className="stage-document-post">
-        <span className="stage-document-post-mark" aria-hidden="true">
-          „
-        </span>
-        <div className="stage-document-post-body">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(result.documentMarkdown)}</ReactMarkdown>
-        </div>
-      </div>
-    );
+    const platform = typeof result.platform === "string" ? result.platform : undefined;
+    return <PostCard documentMarkdown={result.documentMarkdown} platform={platform} />;
   }
   return (
     <div className="stage-document">
