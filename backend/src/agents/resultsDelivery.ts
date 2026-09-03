@@ -53,7 +53,7 @@ export async function ensureResultsLinkSent(clientId: string): Promise<void> {
 
   const { link, expiresAt } = await generateResultsLink(clientId);
 
-  if (client.contactType === "email" && isEmailConfigured()) {
+  if (isEmailConfigured()) {
     await sendMail(
       client.contactValue,
       "Ваш демо-контент готов",
@@ -62,12 +62,11 @@ export async function ensureResultsLinkSent(clientId: string): Promise<void> {
     return;
   }
 
-  // Telegram/ВК ещё не умеют писать клиенту напрямую (см. CLAUDE.md) —
-  // сообщаем оператору, чтобы переслать вручную, тем же принципом, что и
-  // фолбэк в approval.ts для одобрения заявки.
+  // SMTP не настроен — сообщаем оператору, чтобы переслать вручную, тем же
+  // принципом, что и фолбэк в approval.ts для одобрения заявки.
   if (isTelegramConfigured()) {
     sendAdminMessage(
-      `Демо-контент готов у клиента [${client.contactType}] ${client.contactValue}${client.name ? ` (${client.name})` : ""}\n\nСсылка на результаты (перешлите клиенту вручную):\n${link}\nДействует до: ${expiresAt.toISOString()}`
+      `Демо-контент готов у клиента ${client.contactValue}${client.name ? ` (${client.name})` : ""}\n\nСсылка на результаты (перешлите клиенту вручную):\n${link}\nДействует до: ${expiresAt.toISOString()}`
     ).catch((err) => console.error("[results] failed to notify admin:", err));
   }
 }

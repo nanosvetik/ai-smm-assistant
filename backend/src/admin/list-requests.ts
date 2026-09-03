@@ -8,6 +8,6 @@ if (pending.length === 0) {
   console.log("No pending access requests.");
 } else {
   for (const r of pending) {
-    console.log(`${r.id}  [${r.contactType}]  ${r.contactValue}  (${r.createdAt.toISOString()})`);
+    console.log(`${r.id}  ${r.contactValue}${r.name ? `  (${r.name})` : ""}  ${r.createdAt.toISOString()}`);
   }
 }

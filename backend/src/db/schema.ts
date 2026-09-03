@@ -2,7 +2,15 @@ import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 
 export const clients = sqliteTable("clients", {
   id: text("id").primaryKey(),
-  contactType: text("contact_type", { enum: ["email", "telegram", "vk"] }).notNull(),
+  // Только email — решение сессии 2026-09-03: канал связи для заявки/доставки
+  // ссылок больше не выбирается (email есть у всех, плюс это же адрес для
+  // будущих предложений/опроса ОС). Не то же самое, что own-соцсети клиента
+  // на онбординге (social_links) — те остаются telegram/vk для контент-анализа.
+  // Тип сужен на уровне TS/zod, не SQL — SQLite не хранит CHECK на enum
+  // (см. drizzle/0000_safe_shocker.sql, обычный `text NOT NULL`), миграция
+  // не нужна. Колонка contactType оставлена (не удалена) — дешёвая, реально
+  // используемая (просто с одним допустимым значением), а не мёртвый код.
+  contactType: text("contact_type", { enum: ["email"] }).notNull(),
   contactValue: text("contact_value").notNull(),
   // Скопировано из access_requests.name при одобрении заявки (см.
   // approval.ts) — живёт с клиентом дольше самой заявки, нужно для
@@ -15,7 +23,8 @@ export const clients = sqliteTable("clients", {
 // см. раздел 2 Project Specification v2.md.
 export const accessRequests = sqliteTable("access_requests", {
   id: text("id").primaryKey(),
-  contactType: text("contact_type", { enum: ["email", "telegram", "vk"] }).notNull(),
+  // См. clients.contactType выше — тот же принцип и та же формулировка.
+  contactType: text("contact_type", { enum: ["email"] }).notNull(),
   contactValue: text("contact_value").notNull(),
   // Необязательное имя — минимальные лид-данные с лендинга (решение сессии
   // 2026-09-03), не полные перс. данные. Nullable — форма ещё не собирает

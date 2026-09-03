@@ -8,9 +8,11 @@ import { isTelegramConfigured, sendAdminMessage } from "../lib/telegram.js";
 
 export const accessRouter = Router();
 
+// Только email, без выбора канала (решение сессии 2026-09-03, см.
+// db/schema.ts) — реальная валидация формата, не просто непустая строка,
+// как было нужно для generic contactValue (там мог быть и юзернейм телеграма).
 const accessRequestSchema = z.object({
-  contactType: z.enum(["email", "telegram", "vk"]),
-  contactValue: z.string().trim().min(1).max(200),
+  email: z.string().trim().email().max(200),
   // Необязательные лид-данные (решение сессии 2026-09-03) — не полные перс.
   // данные, максимум имя для будущей связи/предложений.
   name: z.string().trim().min(1).max(100).optional(),
@@ -29,8 +31,8 @@ accessRouter.post("/access-requests", async (req, res) => {
   const id = generateId();
   await db.insert(accessRequests).values({
     id,
-    contactType: parsed.data.contactType,
-    contactValue: parsed.data.contactValue,
+    contactType: "email",
+    contactValue: parsed.data.email,
     name: parsed.data.name ?? null,
     status: "pending",
     createdAt: new Date(),
@@ -39,7 +41,7 @@ accessRouter.post("/access-requests", async (req, res) => {
   const namePrefix = parsed.data.name ? `${parsed.data.name} · ` : "";
   if (isTelegramConfigured()) {
     sendAdminMessage(
-      `Новая заявка на демо-доступ\n${namePrefix}[${parsed.data.contactType}] ${parsed.data.contactValue}`,
+      `Новая заявка на демо-доступ\n${namePrefix}${parsed.data.email}`,
       [
         [
           { text: "✅ Одобрить", callback_data: `approve:${id}` },

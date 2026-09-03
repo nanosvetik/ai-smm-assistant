@@ -25,16 +25,16 @@ async function handleUpdate(update: TelegramUpdate) {
       await answerCallbackQuery(cb.id, "Одобрено");
       const deliveryLine = delivered
         ? `Ссылка отправлена клиенту на ${request.contactValue}.`
-        : `Отправьте ссылку клиенту вручную (${request.contactType}:${request.contactValue}):\n${link}`;
+        : `Отправьте ссылку клиенту вручную (${request.contactValue}):\n${link}`;
       await editMessageText(
         cb.message.chat.id,
         cb.message.message_id,
-        `✅ Одобрено: ${request.contactType}:${request.contactValue}\n\n${deliveryLine}\nДействует до: ${expiresAt.toISOString()}`
+        `✅ Одобрено: ${request.contactValue}\n\n${deliveryLine}\nДействует до: ${expiresAt.toISOString()}`
       );
     } else {
       const { request } = await rejectRequest(requestId);
       await answerCallbackQuery(cb.id, "Отклонено");
-      await editMessageText(cb.message.chat.id, cb.message.message_id, `❌ Отклонено: ${request.contactType}:${request.contactValue}`);
+      await editMessageText(cb.message.chat.id, cb.message.message_id, `❌ Отклонено: ${request.contactValue}`);
     }
     console.log(`[telegram] ${action} succeeded for ${requestId}`);
   } catch (err) {
