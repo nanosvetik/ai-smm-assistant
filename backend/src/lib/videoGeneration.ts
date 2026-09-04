@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const VIDEOS_URL = "https://openrouter.ai/api/v1/videos";
@@ -19,6 +19,20 @@ const POLL_INTERVAL_MS = 5000;
 const MAX_POLL_ATTEMPTS = 40;
 
 const REELS_DIR = path.join(process.cwd(), "..", "workspace", "07-reels");
+
+const MIME_BY_EXT: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+};
+
+async function fileToDataUri(absolutePath: string): Promise<string> {
+  const mime = MIME_BY_EXT[path.extname(absolutePath).toLowerCase()] ?? "image/jpeg";
+  const buffer = await readFile(absolutePath);
+  return `data:${mime};base64,${buffer.toString("base64")}`;
+}
 
 function slugify(text: string): string {
   return (
@@ -47,11 +61,20 @@ export interface GeneratedVideoFile {
 // Прямой вызов OpenRouter /api/v1/videos — та же логика, что generate_video в
 // smm-mcp/src/index.js (создание задачи → поллинг → скачивание), реализована
 // отдельно, т.к. smm-mcp — MCP stdio-сервер для Claude Code, не HTTP-сервис,
-// который мог бы вызвать продакшн-бэкенд. Сознательно без reference_image/
-// first_frame_url/last_frame_url — только текстовый промпт (решение сессии:
-// эти параметры требуют публичный URL, который OpenRouter скачивает сам,
-// недоступный на localhost в деве; откладываем до появления прод-домена).
-export async function generateVideoFile(prompt: string): Promise<GeneratedVideoFile> {
+// который мог бы вызвать продакшн-бэкенд.
+//
+// referenceImagePath (решение сессии 2026-09-04, пересматривает более раннее
+// решение "без референсов вообще"): раньше здесь не было ни одного
+// reference_image/first_frame_url/last_frame_url — та версия API принимала
+// только публичный HTTP(S) URL, который OpenRouter скачивает сам (не
+// работало на localhost в деве). У OpenRouter с тех пор появилась новая
+// схема параметров — frame_images[]/input_references[], та же обёртка
+// {type: "image_url", image_url: {url}}, что и в chat completions для
+// vision, и она документированно принимает data:-URI (проверено доками +
+// live-запросом к /api/v1/videos/models: kwaivgi/kling-v3.0-pro поддерживает
+// frame_images с first_frame/last_frame). Кодируем локальный файл в base64
+// и передаём как первый кадр — публичный домен/раздача больше не нужны.
+export async function generateVideoFile(prompt: string, referenceImagePath?: string): Promise<GeneratedVideoFile> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error("OPENROUTER_API_KEY is not set");
@@ -62,6 +85,16 @@ export async function generateVideoFile(prompt: string): Promise<GeneratedVideoF
     "Content-Type": "application/json",
   };
 
+  const frameImages = referenceImagePath
+    ? [
+        {
+          type: "image_url",
+          image_url: { url: await fileToDataUri(referenceImagePath) },
+          frame_type: "first_frame",
+        },
+      ]
+    : undefined;
+
   const createRes = await fetch(VIDEOS_URL, {
     method: "POST",
     headers,
@@ -70,6 +103,7 @@ export async function generateVideoFile(prompt: string): Promise<GeneratedVideoF
       prompt,
       duration: VIDEO_DURATION_SECONDS,
       aspect_ratio: ASPECT_RATIO,
+      ...(frameImages ? { frame_images: frameImages } : {}),
     }),
   });
   if (!createRes.ok) {

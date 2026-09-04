@@ -1,0 +1,1 @@
+ALTER TABLE `generated_videos` ADD `reference_file_id` text;

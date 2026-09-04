@@ -373,9 +373,11 @@ export const reelsVideoPrompts = sqliteTable("reels_video_prompts", {
 
 // Реальный вызов generate_video (raздел 3, Шаг 4 — видео-часть гейта
 // подтверждения) поверх промпта из reels_video_prompts. Зеркало
-// generated_images без platform (Reels — один клип на клиента). Сознательно
-// без reference_image/first_frame_url/last_frame_url — только текстовый
-// промпт (см. prompts/reels-video-generator.md и videoGeneration.ts).
+// generated_images без platform (Reels — один клип на клиента).
+// referenceFileId — какой файл из reels_reference_files (если был) отправлен
+// моделью как first_frame (см. videoGeneration.ts, решение сессии 2026-09-04:
+// OpenRouter принимает data:-URI в frame_images, старое ограничение
+// "только публичный URL" было верно для прежней плоской схемы параметров).
 export const generatedVideos = sqliteTable("generated_videos", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -387,6 +389,7 @@ export const generatedVideos = sqliteTable("generated_videos", {
   cost: real("cost"),
   filePath: text("file_path").notNull(),
   publicUrl: text("public_url").notNull(),
+  referenceFileId: text("reference_file_id"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 

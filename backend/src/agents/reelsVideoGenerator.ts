@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { reelsScripts, reelsVideoPrompts } from "../db/schema.js";
+import { reelsReferenceFiles, reelsScripts, reelsVideoPrompts } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
 import { ensureVisualStyleProfile } from "./visualStyleAnalyzer.js";
@@ -29,7 +29,8 @@ function weakestStatus(statuses: Status[]): Status {
 
 function buildContext(
   script: typeof reelsScripts.$inferSelect,
-  visualProfile: Awaited<ReturnType<typeof ensureVisualStyleProfile>>
+  visualProfile: Awaited<ReturnType<typeof ensureVisualStyleProfile>>,
+  hasReferenceImage: boolean
 ): string {
   return `# Сценарий рилса (статус: ${script.status})
 ${script.documentMarkdown}
@@ -39,6 +40,13 @@ ${
   visualProfile
     ? `(статус: ${visualProfile.status})\n${visualProfile.documentMarkdown}`
     : "не создан — клиент не загружал референсы, работай по нейтральному дефолту (см. Шаг 2 промпта)."
+}
+
+# Референсный кадр
+${
+  hasReferenceImage
+    ? "Клиент загрузил реальную фотографию для рилса — она будет передана видео-модели напрямую как первый кадр. Не описывай в промпте, что на ней изображено, — опиши только действие/движение, которое начинается из этого кадра (см. Шаг 1)."
+    : "Референса нет — работай по нейтральному визуальному описанию хука (см. Шаг 1)."
 }
 `;
 }
@@ -59,8 +67,15 @@ export async function runReelsVideoGenerator(clientId: string) {
 
   const visualProfile = await ensureVisualStyleProfile(clientId);
 
+  const [reference] = await db
+    .select({ id: reelsReferenceFiles.id })
+    .from(reelsReferenceFiles)
+    .where(eq(reelsReferenceFiles.clientId, clientId))
+    .orderBy(desc(reelsReferenceFiles.createdAt))
+    .limit(1);
+
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
-  const userMessage = buildContext(script, visualProfile);
+  const userMessage = buildContext(script, visualProfile, Boolean(reference));
 
   const rawDocument = await chatCompletion(MODEL, [
     { role: "system", content: systemPrompt },
