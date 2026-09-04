@@ -10,6 +10,10 @@
       "env": {
         "MEMORY_FILE_PATH": "./data/dev-memory.json"
       }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
     }
   }
 }
