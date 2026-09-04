@@ -305,12 +305,19 @@ agentsRouter.post("/agents/copywriter", async (req, res) => {
   }
 
   try {
-    const { content, needsManualReview } = await runReviewedCopywriter(
+    const { content, review, needsManualReview } = await runReviewedCopywriter(
       req.clientId!,
       parsed.data.platform,
       parsed.data.day
     );
-    res.status(201).json({ ...content, needsManualReview });
+    // editorFeedback — только при needsManualReview: сам список нарушений
+    // (категория/цитата/объяснение) от editor-in-chief, чтобы в UI было видно
+    // не только факт «нужна ручная проверка», но и куда конкретно смотреть.
+    res.status(201).json({
+      ...content,
+      needsManualReview,
+      ...(needsManualReview ? { editorFeedback: review.documentMarkdown } : {}),
+    });
     // Fire-and-forget — не блокирует ответ клиенту и не должен ронять его
     // при ошибке (см. resultsDelivery.ts: идемпотентно, сама решает, готов
     // ли уже весь текстовый демо-контент под реальные площадки клиента).
@@ -505,8 +512,12 @@ agentsRouter.get("/agents/generate-image", async (req, res) => {
 // обязан проходить editor-in-chief, а не только run-all.
 agentsRouter.post("/agents/reels-writer", async (req, res) => {
   try {
-    const { content, needsManualReview } = await runReviewedReelsWriter(req.clientId!);
-    res.status(201).json({ ...content, needsManualReview });
+    const { content, review, needsManualReview } = await runReviewedReelsWriter(req.clientId!);
+    res.status(201).json({
+      ...content,
+      needsManualReview,
+      ...(needsManualReview ? { editorFeedback: review.documentMarkdown } : {}),
+    });
     ensureResultsLinkSent(req.clientId!).catch((err) => console.error("[results] ensureResultsLinkSent failed:", err));
   } catch (err) {
     if (err instanceof ReelsWriterPrerequisitesMissingError) {

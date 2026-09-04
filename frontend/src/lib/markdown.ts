@@ -48,19 +48,32 @@ function findFrontmatterBlock(document: string): { start: number; end: number } 
 }
 
 // Frontmatter не нужен читателю — статус и так показан отдельно из колонки
-// БД (AgentResult.status). Заодно съедаем окружающий ```yaml-кодфенс, если
-// он есть (все prompts/*.md просят модель оборачивать frontmatter в него).
+// БД (AgentResult.status). Заодно съедаем окружающий кодфенс, если он есть
+// (все prompts/*.md просят модель оборачивать frontmatter в ```yaml).
+// Живой баг: profile-header-analyzer (Claude Sonnet 5) обернул ```markdown
+// вокруг ВСЕГО документа (frontmatter + тело), не только вокруг frontmatter —
+// закрывающий ``` оказался в самом конце строки, а не сразу после frontmatter.
+// Старая логика ждала yaml/yml и фенс вплотную вокруг frontmatter, поэтому
+// не срезала ни открывающий, ни закрывающий тег — весь документ рендерился
+// одним блоком кода. Теперь: любой язык фенса, и если закрывающий ``` не
+// нашёлся сразу после frontmatter — ищем его в конце всего документа.
 export function stripFrontmatter(document: string): string {
   const block = findFrontmatterBlock(document);
   if (!block) return document.trim();
 
   let { start, end } = block;
+  let body = document;
 
-  const fenceBefore = document.slice(0, start).match(/```ya?ml[ \t]*\n$/);
+  const fenceBefore = body.slice(0, start).match(/```[\w-]*[ \t]*\n$/);
   if (fenceBefore) start -= fenceBefore[0].length;
 
-  const fenceAfter = document.slice(end).match(/^\n```[ \t]*\n/);
-  if (fenceAfter) end += fenceAfter[0].length;
+  const fenceRightAfter = body.slice(end).match(/^\n```[ \t]*\n/);
+  if (fenceRightAfter) {
+    end += fenceRightAfter[0].length;
+  } else if (fenceBefore) {
+    const trailingFence = body.match(/\n```[ \t]*$/);
+    if (trailingFence) body = body.slice(0, trailingFence.index);
+  }
 
-  return (document.slice(0, start) + document.slice(end)).trim();
+  return (body.slice(0, start) + body.slice(end)).trim();
 }

@@ -110,10 +110,17 @@ function StatusLine({ result }: { result: AgentResult }) {
         <p className="stage-status-note">Черновик — это честность инструмента при неполных данных, не ошибка.</p>
       )}
       {needsManualReview && (
-        <p className="stage-status-warning">
-          Редактор дважды нашёл нарушения (табу, стоп-слова или нейрослоп) и не смог их снять автоматически —
-          проверьте текст вручную перед использованием.
-        </p>
+        <div className="stage-status-warning">
+          <p>
+            Редактор дважды нашёл нарушения (табу, стоп-слова или нейрослоп) и не смог их снять автоматически —
+            проверьте текст вручную перед использованием.
+          </p>
+          {result.editorFeedback && (
+            <div className="stage-status-warning-detail">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(result.editorFeedback)}</ReactMarkdown>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

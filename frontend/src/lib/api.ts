@@ -110,6 +110,9 @@ export interface AgentResult {
   status: AgentStatus;
   documentMarkdown: string;
   createdAt: string;
+  // Только у copywriter/reels-writer — см. StatusLine в StagePanel.tsx.
+  needsManualReview?: boolean;
+  editorFeedback?: string;
   [key: string]: unknown;
 }
 

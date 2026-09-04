@@ -67,6 +67,34 @@
   margin: 6px 0 0;
 }
 
+.stage-status-warning p {
+  margin: 0;
+}
+
+.stage-status-warning-detail {
+  font-weight: 400;
+  font-size: 12.5px;
+  color: #7a3030;
+  background: #fbeeee;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+
+.stage-status-warning-detail p {
+  margin: 0 0 6px;
+}
+
+.stage-status-warning-detail p:last-child {
+  margin-bottom: 0;
+}
+
+.stage-status-warning-detail ul,
+.stage-status-warning-detail ol {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
+
 .stage-document {
   background: var(--color-bg);
   border-radius: var(--radius-card);

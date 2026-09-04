@@ -26,7 +26,14 @@ const EMPTY_QUESTIONNAIRE: Questionnaire = {
 
 export function OnboardingScreen() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [ownLinks, setOwnLinks] = useState<SocialLink[]>([]);
+  // Живой баг: пустой массив по умолчанию рендерил ноль полей ввода (LinksField
+  // просто map'ит по links) — рядом с конкурентами, у которых сразу два
+  // предзаполненных пустых поля (min={2}), раздел «Ваши соцсети» выглядел
+  // как свёрнутый/отсутствующий, хотя это просто пустой список. Один эксперт
+  // из-за этого реально вписал свои ссылки в поле конкурентов. Поле по-прежнему
+  // необязательное (min=0) — пустая строка просто не уйдёт в submitOnboarding
+  // (см. cleanOwn ниже), но визуально должно быть на что нажать/куда печатать.
+  const [ownLinks, setOwnLinks] = useState<SocialLink[]>([{ platform: "telegram", url: "" }]);
   const [competitorLinks, setCompetitorLinks] = useState<SocialLink[]>([
     { platform: "telegram", url: "" },
     { platform: "telegram", url: "" },
