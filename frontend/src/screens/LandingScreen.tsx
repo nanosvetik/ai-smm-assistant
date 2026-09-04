@@ -146,7 +146,12 @@ export function LandingScreen() {
   return (
     <div className="landing-screen" ref={heroRef}>
       <header className="landing-header">
-        <span className="landing-brand">{BRAND_NAME}</span>
+        <span className="landing-brand">
+          <span className="landing-brand-mark" aria-hidden="true">
+            „
+          </span>
+          {BRAND_NAME}
+        </span>
         <Button type="button" variant="quiet" onClick={scrollToForm}>
           Получить демо-доступ
         </Button>

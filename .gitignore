@@ -27,6 +27,8 @@ npm-debug.log*
 
 # Скриншоты для визуальной проверки Claude Code (не часть проекта)
 screenshot/
+.playwright-mcp/
+**/.playwright-mcp/
 
 # OS / editor
 .DS_Store
