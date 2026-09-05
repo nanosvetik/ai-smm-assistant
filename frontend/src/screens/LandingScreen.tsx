@@ -9,7 +9,7 @@ import "./LandingScreen.css";
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 // Название бренда закреплено решением сессии 2026-09-04 (см. CLAUDE.md).
-// Домен genpost-ai.ru намеренно не совпадает с отображаемым именем.
+// Домен svoislova-ai.ru намеренно не совпадает с отображаемым именем.
 const BRAND_NAME = "Своими словами";
 
 // Живой пример поста для hero — не абстрактная метрика (Бриф 1 design-brief-
