@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accessLinks, clients, copywriterPosts, reelsScripts, socialLinks } from "../db/schema.js";
 import { generateResultsLink } from "../admin/resultsLink.js";
-import { isEmailConfigured, sendMail } from "../lib/email.js";
+import { formatExpiryDate, isEmailConfigured, sendMail } from "../lib/email.js";
 import { isTelegramConfigured, sendAdminMessage } from "../lib/telegram.js";
 
 type Platform = "telegram" | "vk";
@@ -57,7 +57,7 @@ export async function ensureResultsLinkSent(clientId: string): Promise<void> {
     await sendMail(
       client.contactValue,
       "Ваш демо-контент готов",
-      `Здравствуйте${client.name ? `, ${client.name}` : ""}!\n\nГотовый демо-контент можно посмотреть здесь:\n${link}\n\nСсылка ваша, можно возвращаться к ней или переслать кому-то ещё — она не одноразовая.`
+      `Здравствуйте${client.name ? `, ${client.name}` : ""}!\n\nГотовый демо-контент — посты, картинка и сценарий Reels под ваш голос и метод — можно посмотреть здесь:\n${link}\n\nСсылка не одноразовая и действует до ${formatExpiryDate(expiresAt)} — возвращайтесь к ней в любой момент и смело пересылайте друзьям, коллегам, куда угодно, где это может быть интересно.`
     );
     return;
   }

@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accessLinks, accessRequests, clients } from "../db/schema.js";
 import { generateId, generateToken, ONBOARDING_LINK_TTL_MS } from "../lib/tokens.js";
-import { isEmailConfigured, sendMail } from "../lib/email.js";
+import { formatExpiryDateTime, isEmailConfigured, sendMail } from "../lib/email.js";
 
 export class ApprovalError extends Error {}
 
@@ -63,7 +63,7 @@ export async function approveRequest(requestId: string) {
       await sendMail(
         request.contactValue,
         "Доступ к демо готов",
-        `Здравствуйте${request.name ? `, ${request.name}` : ""}!\n\nВаша ссылка для начала работы:\n${link}\n\nСсылка одноразовая и действует до ${expiresAt.toISOString()}.`
+        `Здравствуйте${request.name ? `, ${request.name}` : ""}!\n\nСсылка для заполнения анкеты:\n${link}\n\nВажно: ссылка одноразовая — она сгорает сразу при переходе, даже если вы просто откроете её посмотреть и не станете заполнять анкету до конца. Переходите по ней, когда будете готовы сразу пройти её целиком (это займёт 10–15 минут). Ссылка действует до ${formatExpiryDateTime(expiresAt)} — если не успеете, напишите нам, вышлем новую.`
       );
       delivered = true;
     } catch (err) {

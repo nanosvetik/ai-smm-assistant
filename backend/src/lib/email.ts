@@ -28,3 +28,16 @@ export async function sendMail(to: string, subject: string, text: string): Promi
   if (!isEmailConfigured()) throw new Error("SMTP is not configured");
   await getTransport().sendMail({ from: process.env.SMTP_FROM, to, subject, text });
 }
+
+// Человекочитаемые сроки действия ссылок в письмах клиенту — сырой
+// ISO-таймстамп (toISOString()) в тексте письма выглядит технически и не
+// объясняет, что реально произойдёт (решение сессии 2026-09-05). Онбординг
+// живёт часами — нужно время суток; results — месяцами, время суток не
+// важно, но год важен (90-дневный срок может перейти в следующий год).
+export function formatExpiryDateTime(date: Date): string {
+  return date.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+}
+
+export function formatExpiryDate(date: Date): string {
+  return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+}
