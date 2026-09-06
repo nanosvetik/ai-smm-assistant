@@ -6,6 +6,21 @@
   margin-bottom: 20px;
 }
 
+.content-plan-download-note {
+  margin: 0 0 16px;
+  padding: 14px 18px;
+  background: var(--color-plum-soft);
+  border-left: 3px solid var(--color-plum);
+  border-radius: var(--radius-card);
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.content-plan-download-note strong {
+  color: var(--color-plum);
+}
+
 .content-plan-toolbar {
   display: flex;
   justify-content: flex-end;

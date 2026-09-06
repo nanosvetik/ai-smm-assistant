@@ -120,6 +120,16 @@ export function ResultsScreen() {
           </section>
         )}
       </div>
+
+      {bundle.packaging && (
+        <section className="results-packaging">
+          <p className="results-eyebrow">Упаковка профиля</p>
+          <h2>Как это выглядит в позиционировании</h2>
+          <div className="results-packaging-body">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripFrontmatter(bundle.packaging.documentMarkdown)}</ReactMarkdown>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

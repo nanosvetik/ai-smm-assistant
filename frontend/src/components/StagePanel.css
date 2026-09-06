@@ -159,6 +159,14 @@
   margin-bottom: 0;
 }
 
+/* Без этого длинная строка в ```-блоке (агенты иногда оборачивают в него
+   целые куски текста, например версии био) вылезает за карточку вместо
+   переноса — браузерный дефолт для pre это white-space: pre без wrap. */
+.stage-document pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .stage-document table {
   width: 100%;
   border-collapse: collapse;

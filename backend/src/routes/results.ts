@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { accessLinks, copywriterPosts, generatedImages, generatedVideos, reelsScripts, socialLinks } from "../db/schema.js";
+import { accessLinks, copywriterPosts, generatedImages, generatedVideos, packagingProfiles, reelsScripts, socialLinks } from "../db/schema.js";
 import { parseFrontmatter } from "../lib/frontmatter.js";
 
 export const resultsRouter = Router();
@@ -38,6 +38,16 @@ async function latestGeneratedVideo(clientId: string) {
   return row ?? null;
 }
 
+async function latestPackagingProfile(clientId: string) {
+  const [row] = await db
+    .select()
+    .from(packagingProfiles)
+    .where(eq(packagingProfiles.clientId, clientId))
+    .orderBy(desc(packagingProfiles.version))
+    .limit(1);
+  return row ?? null;
+}
+
 function themeOf(documentMarkdown: string): string | null {
   const theme = parseFrontmatter(documentMarkdown)?.["тема"];
   return typeof theme === "string" ? theme : null;
@@ -48,10 +58,17 @@ function themeOf(documentMarkdown: string): string | null {
 // сессионную куку: рассчитана на пересылку нескольким людям (потенциальным
 // лидам, не только самому клиенту), не на однократный вход. Никакого
 // requireSession — токен в самом URL и есть авторизация для этого маршрута.
-// Отдаёт только готовый демо-контент (посты/картинки/рилс) — без
-// аналитических документов (ЦА/экспертность и т.п.): это стратегические
-// данные клиента, шэрить их со случайными зрителями по пересланной ссылке
-// не то же самое, что показать готовый пост.
+// Отдаёт готовый демо-контент (посты/картинки/рилс) плюс «Упаковку профиля»
+// (решение сессии 2026-09-06) — она уже синтезирует ключевое из ЦА/экспертности
+// в презентабельном виде (позиционирование, био, рекомендации по шапке) и
+// само по себе демонстрирует ценность продукта, безопасно для пересылки.
+// Сырые аналитические документы (ЦА/экспертность/анализ аккаунта/конкурентов/
+// аудит шапки) и контент-план сюда сознательно не идут — контент-план это
+// личная стратегия клиента на 2 недели, не материал для показа случайным
+// зрителям пересланной ссылки (клиенту вместо этого предложено скачать его
+// из кабинета, см. ContentPlanGrid.tsx); остальные документы — черновая
+// кухня анализа, которую демо намеренно не показывает целиком (стимул
+// вернуться за полной версией).
 resultsRouter.get("/results/:token", async (req, res) => {
   const { token } = req.params;
 
@@ -99,5 +116,7 @@ resultsRouter.get("/results/:token", async (req, res) => {
     }
   }
 
-  res.json({ platforms, posts, reels });
+  const packaging = await latestPackagingProfile(link.clientId);
+
+  res.json({ platforms, posts, reels, packaging: packaging ? { documentMarkdown: packaging.documentMarkdown } : null });
 });

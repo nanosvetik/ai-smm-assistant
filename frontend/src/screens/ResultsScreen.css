@@ -101,7 +101,8 @@
     order: initial;
   }
 
-  .results-hero {
+  .results-hero,
+  .results-packaging {
     padding-left: 0;
   }
 }
@@ -182,4 +183,40 @@
   box-shadow: 0 2px 16px rgba(31, 36, 32, 0.06);
   padding: 24px;
   line-height: 1.6;
+}
+
+.results-packaging {
+  max-width: 720px;
+  margin: 96px auto 0;
+  padding-left: 4%;
+}
+
+.results-packaging h2 {
+  font-size: clamp(24px, 3.5vw, 32px);
+  margin-bottom: 24px;
+  max-width: 30ch;
+}
+
+.results-packaging-body {
+  background: var(--color-bg);
+  border-radius: var(--radius-card);
+  box-shadow: 0 2px 16px rgba(31, 36, 32, 0.06);
+  padding: 32px;
+  line-height: 1.6;
+}
+
+.results-packaging-body :first-child {
+  margin-top: 0;
+}
+
+.results-packaging-body :last-child {
+  margin-bottom: 0;
+}
+
+/* См. тот же фикс в StagePanel.css — pre без wrap вылезает за карточку. */
+.results-packaging-body pre,
+.results-post-text pre,
+.results-script-body pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

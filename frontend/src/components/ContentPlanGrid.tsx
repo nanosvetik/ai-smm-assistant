@@ -26,6 +26,11 @@ export function ContentPlanGrid({ plan }: { plan: ContentPlanData }) {
 
   return (
     <div className="content-plan-grid">
+      <p className="content-plan-download-note">
+        <strong>Скачайте таблицу сейчас.</strong> Контент-план хранится только в этом кабинете — доступ к нему
+        ограничен по времени, и в отличие от готовых постов и упаковки профиля он больше нигде не сохраняется.
+      </p>
+
       <div className="content-plan-toolbar">
         <Button type="button" variant="primary" onClick={handleDownload} disabled={isDownloading}>
           {isDownloading ? "Готовим файл…" : "Скачать таблицу (.xlsx)"}

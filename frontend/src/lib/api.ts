@@ -195,8 +195,9 @@ export async function getGeneratedVideo(): Promise<GeneratedVideo | null> {
 }
 
 // Read-only ссылка на готовое демо (см. CLAUDE.md, "результат-страница") —
-// не под сессией, токен в URL и есть авторизация. Отдаёт только готовый
-// демо-контент (посты/картинки/рилс), без аналитических документов.
+// не под сессией, токен в URL и есть авторизация. Отдаёт готовый демо-контент
+// (посты/картинки/рилс) плюс «Упаковку профиля»; остальные аналитические
+// документы и контент-план сюда не идут (см. results.ts на бэкенде).
 export interface ResultsPost {
   platform: Platform;
   theme: string | null;
@@ -210,10 +211,15 @@ export interface ResultsReels {
   videoUrl: string | null;
 }
 
+export interface ResultsPackaging {
+  documentMarkdown: string;
+}
+
 export interface ResultsBundle {
   platforms: Platform[];
   posts: ResultsPost[];
   reels: ResultsReels | null;
+  packaging: ResultsPackaging | null;
 }
 
 export function getResults(token: string) {
