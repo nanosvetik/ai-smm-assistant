@@ -71,7 +71,7 @@
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   gap: 56px;
-  align-items: start;
+  align-items: center;
   max-width: 1160px;
   margin: 0 auto;
   padding: 72px 24px 96px;
@@ -80,8 +80,8 @@
 .landing-hero-text h1 {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(34px, 4.6vw, 56px);
-  line-height: 1.1;
+  font-size: clamp(34px, 5vw, 64px);
+  line-height: 1.06;
   margin-bottom: 24px;
   max-width: 16ch;
 }
@@ -94,12 +94,12 @@
   margin-bottom: 32px;
 }
 
-/* Смещена вниз относительно заголовка — асимметрия по Брифу 1, не выровнена
-   строго по верхней линии текстового блока. Смещение подобрано так, чтобы
-   колонки заканчивались примерно на одной линии: при 88px правая колонка была
-   выше левой на ~70px, и под кнопкой оставалась дыра. */
-.landing-hero-card {
-  margin-top: 32px;
+.landing-hero-card-note {
+  margin: 12px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--color-muted);
 }
 
 .landing-hero-card-role {
@@ -110,14 +110,27 @@
   margin: 0 0 10px;
 }
 
+/* Карточка собрана как настоящий пост: сначала картинка во всю ширину,
+   под ней текст. Изображение — из тех же прогонов сервиса, что и текст. */
 .landing-post-card {
+  background: var(--color-plum-soft);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(74, 37, 69, 0.14);
+}
+
+.landing-post-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+.landing-post-body {
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  background: var(--color-plum-soft);
-  border-radius: var(--radius-card);
-  padding: 28px;
-  box-shadow: 0 16px 40px rgba(74, 37, 69, 0.14);
+  padding: 24px 28px 28px;
 }
 
 .landing-post-mark {
@@ -155,10 +168,6 @@
   .landing-hero {
     grid-template-columns: 1fr;
     padding-top: 48px;
-  }
-
-  .landing-hero-card {
-    margin-top: 0;
   }
 
   .landing-hero-text h1 {
@@ -205,6 +214,16 @@
   line-height: 1.6;
 }
 
+.landing-split-image {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-card);
+  margin-top: 36px;
+}
+
 @media (max-width: 880px) {
   .landing-split {
     grid-template-columns: 1fr;
@@ -213,6 +232,12 @@
 
   .landing-split-note {
     max-width: 46ch;
+  }
+
+  /* На узких экранах колонка одна: фото между заголовком и списком только
+     отодвигает содержание вниз, ничего не уравновешивая. */
+  .landing-split-image {
+    display: none;
   }
 }
 
@@ -293,12 +318,26 @@
 
 /* ---------- Контраст «не шаблон» ---------- */
 
+/* Единственная тёмная полоса на странице — смысловой якорь: после неё светлые
+   секции читаются как воздух, а не как незаполненное место. Сплошная заливка
+   идёт на всю ширину окна, содержимое остаётся в общей колонке 1160px. */
+.landing-contrast-band {
+  background: var(--color-plum);
+  color: var(--color-bg);
+  margin: 40px 0;
+}
+
+.landing-contrast {
+  padding-top: 88px;
+  padding-bottom: 88px;
+}
+
 /* Карточки по высоте своего текста: при stretch короткая «ботовская» реплика
    растягивалась до высоты живого примера и внутри рамки оставалась дыра. */
 .landing-contrast-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 32px;
   align-items: start;
 }
 
@@ -308,29 +347,38 @@
   margin: 0 0 12px;
 }
 
+/* Ботовская реплика намеренно не карточка: полупрозрачный контур на сливе,
+   без собственного фона — рядом со светлой карточкой она читается как черновик. */
 .landing-contrast-generic {
-  border: 1px solid var(--color-border-soft);
+  border: 1px solid rgba(250, 250, 246, 0.28);
   border-radius: var(--radius-card);
   padding: 28px;
+  align-self: center;
 }
 
-.landing-contrast-generic .landing-contrast-label {
-  color: var(--color-muted);
+.landing-contrast-generic .landing-contrast-label,
+.landing-contrast-generic p:not(.landing-contrast-label) {
+  color: rgba(250, 250, 246, 0.62);
 }
 
 .landing-contrast-generic p:not(.landing-contrast-label) {
-  color: var(--color-muted);
   font-style: italic;
   margin: 0;
 }
 
 .landing-contrast-voice {
-  background: var(--color-plum-soft);
+  background: var(--color-bg);
+  color: var(--color-text);
   border-radius: var(--radius-card);
-  padding: 28px;
+  overflow: hidden;
   font-family: var(--font-display);
   font-size: 16px;
   line-height: 1.6;
+  box-shadow: 0 24px 60px rgba(20, 8, 18, 0.35);
+}
+
+.landing-contrast-voice-body {
+  padding: 24px 28px 28px;
 }
 
 .landing-contrast-voice .landing-contrast-label {

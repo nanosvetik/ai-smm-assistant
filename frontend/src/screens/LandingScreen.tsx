@@ -3,6 +3,9 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ApiError, submitAccessRequest } from "../lib/api";
 import { Button } from "../components/Button";
+import soapImage from "../assets/images/example-soap.jpg";
+import studioImage from "../assets/images/example-studio.jpg";
+import ceramicsImage from "../assets/images/example-ceramics.jpg";
 import "./LandingScreen.css";
 
 gsap.registerPlugin(useGSAP);
@@ -205,15 +208,24 @@ export function LandingScreen() {
         <div className="landing-hero-card hero-card">
           <p className="landing-hero-card-role">{HERO_EXAMPLE.role}</p>
           <div className="landing-post-card">
-            <span className="landing-post-mark" aria-hidden="true">
-              „
-            </span>
-            <div className="landing-post-text">
-              {HERO_EXAMPLE.text.split("\n\n").map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
+            <img
+              className="landing-post-image"
+              src={soapImage}
+              alt="Мыло ручной работы на льняном полотне у окна"
+              loading="eager"
+            />
+            <div className="landing-post-body">
+              <span className="landing-post-mark" aria-hidden="true">
+                „
+              </span>
+              <div className="landing-post-text">
+                {HERO_EXAMPLE.text.split("\n\n").map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
             </div>
           </div>
+          <p className="landing-hero-card-note">Текст и картинка сделаны сервисом.</p>
         </div>
       </section>
 
@@ -224,6 +236,12 @@ export function LandingScreen() {
             Пять вещей, которые обычно заказывают по отдельности и у разных людей. Здесь они
             получаются за один прогон.
           </p>
+          <img
+            className="landing-split-image"
+            src={ceramicsImage}
+            alt="Керамические кружки и миски ручной работы на деревянной полке в мастерской"
+            loading="lazy"
+          />
         </div>
         <ol className="landing-how-list">
           {VALUE_STEPS.map((step, i) => (
@@ -254,21 +272,31 @@ export function LandingScreen() {
         </ul>
       </section>
 
-      <section className="landing-section landing-contrast">
-        <h2 className="reveal">Не шаблон, который выдаст любой чат-бот</h2>
-        <div className="landing-contrast-grid reveal">
-          <div className="landing-contrast-generic">
-            <p className="landing-contrast-label">Так пишет любой чат-бот</p>
-            <p>{GENERIC_EXAMPLE}</p>
+      <div className="landing-contrast-band">
+        <section className="landing-section landing-contrast">
+          <h2 className="reveal">Не шаблон, который выдаст любой чат-бот</h2>
+          <div className="landing-contrast-grid reveal">
+            <div className="landing-contrast-generic">
+              <p className="landing-contrast-label">Так пишет любой чат-бот</p>
+              <p>{GENERIC_EXAMPLE}</p>
+            </div>
+            <div className="landing-contrast-voice">
+              <img
+                className="landing-post-image"
+                src={studioImage}
+                alt="Уголок кабинета косметолога: зеркало, льняное полотенце, флаконы"
+                loading="lazy"
+              />
+              <div className="landing-contrast-voice-body">
+                <p className="landing-contrast-label">Так — только вы</p>
+                {VOICE_EXAMPLE.split("\n\n").map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="landing-contrast-voice">
-            <p className="landing-contrast-label">Так — только вы</p>
-            {VOICE_EXAMPLE.split("\n\n").map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <section className="landing-section landing-split landing-cta" ref={formSectionRef}>
         <div className="landing-split-head reveal">
