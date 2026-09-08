@@ -217,8 +217,14 @@ export function LandingScreen() {
         </div>
       </section>
 
-      <section className="landing-section landing-how">
-        <h2 className="reveal">То, за что обычно платят маркетологу</h2>
+      <section className="landing-section landing-split landing-how">
+        <div className="landing-split-head reveal">
+          <h2>То, за что обычно платят маркетологу</h2>
+          <p className="landing-split-note">
+            Пять вещей, которые обычно заказывают по отдельности и у разных людей. Здесь они
+            получаются за один прогон.
+          </p>
+        </div>
         <ol className="landing-how-list">
           {VALUE_STEPS.map((step, i) => (
             <li className="landing-how-item reveal" key={i}>
@@ -234,8 +240,13 @@ export function LandingScreen() {
         </ol>
       </section>
 
-      <section className="landing-section landing-roadmap">
-        <h2 className="reveal">Это только начало</h2>
+      <section className="landing-section landing-split landing-roadmap">
+        <div className="landing-split-head reveal">
+          <h2>Это только начало</h2>
+          <p className="landing-split-note">
+            Сейчас работаем с Telegram и ВК. Что добавляем дальше:
+          </p>
+        </div>
         <ul className="landing-roadmap-list reveal">
           {ROADMAP.map((item, i) => (
             <li key={i}>{item}</li>

@@ -95,9 +95,11 @@
 }
 
 /* Смещена вниз относительно заголовка — асимметрия по Брифу 1, не выровнена
-   строго по верхней линии текстового блока. */
+   строго по верхней линии текстового блока. Смещение подобрано так, чтобы
+   колонки заканчивались примерно на одной линии: при 88px правая колонка была
+   выше левой на ~70px, и под кнопкой оставалась дыра. */
 .landing-hero-card {
-  margin-top: 88px;
+  margin-top: 32px;
 }
 
 .landing-hero-card-role {
@@ -180,6 +182,40 @@
   max-width: 20ch;
 }
 
+/* Заголовок слева, содержание справа. Без этого содержательные секции
+   выстраивались одной узкой колонкой у левого края, и правая половина
+   страницы пустовала на всю высоту. */
+.landing-split {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 64px;
+  align-items: start;
+}
+
+.landing-split-head h2 {
+  margin-bottom: 16px;
+}
+
+.landing-split-note {
+  margin: 0;
+  max-width: 30ch;
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 880px) {
+  .landing-split {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .landing-split-note {
+    max-width: 46ch;
+  }
+}
+
 /* ---------- Как это работает ---------- */
 
 .landing-how-list {
@@ -189,7 +225,6 @@
   display: flex;
   flex-direction: column;
   gap: 36px;
-  max-width: 640px;
 }
 
 .landing-how-item {
@@ -226,10 +261,16 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  max-width: 560px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 32px;
+}
+
+@media (max-width: 700px) {
+  .landing-roadmap-list {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 }
 
 .landing-roadmap-list li {
