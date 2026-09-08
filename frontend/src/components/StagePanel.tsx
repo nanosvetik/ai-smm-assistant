@@ -98,7 +98,10 @@ interface StagePanelProps {
   onRun: (platform?: Platform) => Promise<void>;
 }
 
-function StatusLine({ result }: { result: AgentResult }) {
+// showDraftNote: пояснение про черновик одинаково для всех площадок, поэтому
+// на этапе с двумя площадками оно печаталось на экране дважды подряд. Статус и
+// версия у площадок разные — они остаются у каждой.
+function StatusLine({ result, showDraftNote = true }: { result: AgentResult; showDraftNote?: boolean }) {
   const isDraft = result.status.startsWith("черновик");
   const needsManualReview = result.needsManualReview === true;
   return (
@@ -106,7 +109,7 @@ function StatusLine({ result }: { result: AgentResult }) {
       <p className="stage-status-line">
         статус: {result.status} · версия {result.version}
       </p>
-      {isDraft && (
+      {isDraft && showDraftNote && (
         <p className="stage-status-note">Черновик — это честность инструмента при неполных данных, не ошибка.</p>
       )}
       {needsManualReview && (
@@ -132,12 +135,14 @@ function RunBlock({
   onRun,
   runLabel,
   emptyHint,
+  showDraftNote = true,
 }: {
   stage: StageConfig;
   result: AgentResult | null;
   onRun: () => Promise<void>;
   runLabel: string;
   emptyHint: string;
+  showDraftNote?: boolean;
 }) {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,7 +169,7 @@ function RunBlock({
     <div className="stage-run-block">
       {result ? (
         <>
-          <StatusLine result={result} />
+          <StatusLine result={result} showDraftNote={showDraftNote} />
           <DocumentBody stage={stage} result={result} />
         </>
       ) : !isRunning ? (
@@ -246,6 +251,7 @@ export function StagePanel({ stage, platforms, result, secondaryResult, onRun }:
                     onRun={() => onRun(platform)}
                     runLabel="Запустить"
                     emptyHint={emptyHint}
+                    showDraftNote={index === 0}
                   />
                 )}
               </div>

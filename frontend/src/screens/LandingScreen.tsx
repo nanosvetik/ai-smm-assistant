@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ApiError, submitAccessRequest } from "../lib/api";
+import { BRAND_NAME } from "../lib/brand";
 import { Button } from "../components/Button";
 import soapImage from "../assets/images/example-soap.jpg";
 import studioImage from "../assets/images/example-studio.jpg";
@@ -9,10 +10,6 @@ import ceramicsImage from "../assets/images/example-ceramics.jpg";
 import "./LandingScreen.css";
 
 gsap.registerPlugin(useGSAP);
-
-// Название бренда закреплено решением сессии 2026-09-04 (см. CLAUDE.md).
-// Домен svoislova-ai.ru намеренно не совпадает с отображаемым именем.
-const BRAND_NAME = "Своими словами";
 
 // Живой пример поста для hero — не абстрактная метрика (Бриф 1 design-brief-
 // ателье.md: «доказательство с первого экрана, а не обещание»). Мастер по

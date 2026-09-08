@@ -60,6 +60,57 @@ p {
   margin: 0;
 }
 
+/* Документы агентов (кабинет, сценарий и упаковка в результатах) приходят
+   готовым markdown, и без этих правил они наследовали глобальные `margin: 0`
+   и браузерные кегли: заголовок документа выходил ровно тем же размером, что
+   заголовок экрана (28px), а воздуха над заголовками не было вовсе — документ
+   читался сплошной простынёй без структуры. Ширина строки ограничена: по
+   ширине карточки выходило ~86 знаков. */
+.stage-document,
+.results-packaging-body,
+.results-script-body {
+  --doc-heading-gap: 28px;
+}
+
+.stage-document h1,
+.results-packaging-body h1,
+.results-script-body h1 {
+  font-size: 22px;
+  margin: var(--doc-heading-gap) 0 10px;
+}
+
+.stage-document h2,
+.results-packaging-body h2,
+.results-script-body h2 {
+  font-size: 19px;
+  margin: 24px 0 8px;
+}
+
+.stage-document h3,
+.stage-document h4,
+.results-packaging-body h3,
+.results-packaging-body h4,
+.results-script-body h3,
+.results-script-body h4 {
+  font-size: 16px;
+  margin: 20px 0 6px;
+}
+
+.stage-document p,
+.stage-document li,
+.results-packaging-body p,
+.results-packaging-body li,
+.results-script-body p,
+.results-script-body li {
+  max-width: 70ch;
+}
+
+.stage-document > :first-child,
+.results-packaging-body > :first-child,
+.results-script-body > :first-child {
+  margin-top: 0;
+}
+
 button,
 input,
 textarea,

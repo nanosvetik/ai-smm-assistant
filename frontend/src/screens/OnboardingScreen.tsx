@@ -7,6 +7,7 @@ import {
   type SalesModel,
   type SocialLink,
 } from "../lib/api";
+import { AppHeader } from "../components/AppHeader";
 import { LinksField } from "../components/LinksField";
 import { InterviewCard } from "../components/InterviewCard";
 import { Button } from "../components/Button";
@@ -146,8 +147,10 @@ export function OnboardingScreen() {
   }
 
   return (
-    <div className="onboarding-screen">
-      <form className="onboarding-form" onSubmit={handleSubmit}>
+    <>
+      <AppHeader />
+      <div className="onboarding-screen">
+        <form className="onboarding-form" onSubmit={handleSubmit}>
         <header className="onboarding-header">
           <div className="onboarding-header-top">
             <span className="onboarding-header-mark" aria-hidden="true">„</span>
@@ -216,7 +219,8 @@ export function OnboardingScreen() {
         <Button type="submit" disabled={submitState === "submitting"}>
           {submitState === "submitting" ? "Сохраняем…" : "Сохранить и продолжить"}
         </Button>
-      </form>
-    </div>
+        </form>
+      </div>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, getAgentResult, getOnboarding, runAgent, type AgentResult, type Platform } from "../lib/api";
 import { STAGES, type StageConfig } from "../lib/stages";
+import { AppHeader } from "../components/AppHeader";
 import { Sidebar, type StageProgress } from "../components/Sidebar";
 import { StagePanel } from "../components/StagePanel";
 import "./DashboardScreen.css";
@@ -134,15 +135,18 @@ export function DashboardScreen() {
   const activeStage = visibleStages.find((s) => s.key === activeKey) ?? visibleStages[0];
 
   return (
-    <div className="dashboard-screen">
-      <Sidebar stages={visibleStages} progress={progress} activeKey={activeStage.key} onSelect={handleSelectStage} />
-      <StagePanel
-        stage={activeStage}
-        platforms={platforms}
-        result={results[activeStage.key] ?? null}
-        secondaryResult={secondaryResults[activeStage.key] ?? null}
-        onRun={(platform) => handleRun(activeStage, platform)}
-      />
-    </div>
+    <>
+      <AppHeader />
+      <div className="dashboard-screen">
+        <Sidebar stages={visibleStages} progress={progress} activeKey={activeStage.key} onSelect={handleSelectStage} />
+        <StagePanel
+          stage={activeStage}
+          platforms={platforms}
+          result={results[activeStage.key] ?? null}
+          secondaryResult={secondaryResults[activeStage.key] ?? null}
+          onRun={(platform) => handleRun(activeStage, platform)}
+        />
+      </div>
+    </>
   );
 }

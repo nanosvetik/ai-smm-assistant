@@ -55,21 +55,26 @@
 
 .onboarding-header {
   margin-bottom: 40px;
+  position: relative;
 }
 
 .onboarding-header-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  display: block;
 }
 
+/* Кавычка вынесена из потока в левое поле. Раньше она стояла флекс-соседом
+   заголовка с line-height 0.6: глиф вылезал из своей строки на абзац под
+   заголовком, а сам заголовок сдвигался вправо и терял общую левую ось с
+   текстом. */
 .onboarding-header-mark {
+  position: absolute;
+  left: -44px;
+  top: 2px;
   font-family: var(--font-display);
   font-size: 56px;
-  line-height: 0.6;
+  line-height: 1;
   color: var(--color-plum);
   opacity: 0.45;
-  margin-top: 6px;
   user-select: none;
 }
 
@@ -93,9 +98,15 @@
   color: var(--color-plum);
 }
 
-@media (max-width: 480px) {
+/* В левом поле кавычка помещается, только пока форма не прижата к краю окна:
+   ниже этой ширины она встаёт отдельной строкой над заголовком. */
+@media (max-width: 820px) {
   .onboarding-header-mark {
+    position: static;
+    display: block;
     font-size: 44px;
+    line-height: 0.9;
+    margin-bottom: 4px;
   }
 }
 
