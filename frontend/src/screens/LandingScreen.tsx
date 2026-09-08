@@ -270,8 +270,8 @@ export function LandingScreen() {
         </div>
       </section>
 
-      <section className="landing-section landing-cta" ref={formSectionRef}>
-        <div className="landing-cta-inner reveal">
+      <section className="landing-section landing-split landing-cta" ref={formSectionRef}>
+        <div className="landing-split-head reveal">
           <h2>Получить демо-доступ</h2>
           <p className="landing-cta-sub">
             Оставьте почту — мы вручную проверим заявку и пришлём одноразовую ссылку на вход, обычно
@@ -284,7 +284,9 @@ export function LandingScreen() {
             метода — плюс план публикаций и один готовый пост, картинка и сценарий рилса под ваши
             соцсети.
           </p>
+        </div>
 
+        <div className="landing-cta-form reveal">
           {status === "done" ? (
             <p className="landing-cta-done">
               Заявка отправлена. Ссылка придёт на {email || "указанную почту"} после проверки.

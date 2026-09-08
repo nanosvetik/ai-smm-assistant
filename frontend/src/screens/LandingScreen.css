@@ -293,11 +293,13 @@
 
 /* ---------- Контраст «не шаблон» ---------- */
 
+/* Карточки по высоте своего текста: при stretch короткая «ботовская» реплика
+   растягивалась до высоты живого примера и внутри рамки оставалась дыра. */
 .landing-contrast-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .landing-contrast-label {
@@ -352,8 +354,22 @@
 
 /* ---------- CTA / форма ---------- */
 
-.landing-cta-inner {
-  max-width: 480px;
+/* Форма уже текстовой колонки: поля шире 440px читаются как незаполненная
+   пустота, а не как приглашение. Правило под min-width намеренно: оно стоит в
+   файле ниже мобильного media-блока .landing-split и при равной специфичности
+   иначе перебивало бы схлопывание колонок на узких экранах. */
+@media (min-width: 881px) {
+  .landing-cta {
+    grid-template-columns: 1fr 0.8fr;
+  }
+}
+
+.landing-cta-form {
+  max-width: 440px;
+}
+
+.landing-cta .landing-demo-note {
+  margin-bottom: 0;
 }
 
 .landing-cta-sub {
