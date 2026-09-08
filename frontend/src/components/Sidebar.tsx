@@ -66,7 +66,7 @@ export function Sidebar({ stages, progress, activeKey, onSelect }: SidebarProps)
                 onClick={() => handleSelect(stage.key)}
               >
                 <span className="sidebar-item-mark" aria-hidden="true">
-                  {state === "done" ? "✓" : ""}
+                  {state === "done" ? "✓" : state === "current" ? "•" : ""}
                 </span>
                 <span>{stage.label}</span>
               </button>

@@ -106,14 +106,24 @@
   color: var(--color-muted);
 }
 
+/* Разведены два разных смысла, которые раньше делили один цвет.
+   Текущий этап конвейера — охряная точка и начертание: это статус, а слива по
+   брифу статуса не означает. Мягкая сливовая заливка отдана открытому сейчас
+   пункту — это ровно «активное состояние навигации» из брифа; до этого
+   выбранный пункт подсвечивался нейтральным серым, и слива в кабинете не
+   появлялась вовсе, если все этапы уже пройдены. */
 .sidebar-item-current {
-  background: var(--color-plum-soft);
-  color: var(--color-plum);
   font-weight: 500;
 }
 
-.sidebar-item-active:not(.sidebar-item-current) {
-  background: rgba(31, 36, 32, 0.05);
+.sidebar-item-current .sidebar-item-mark {
+  color: var(--color-ochre);
+}
+
+.sidebar-item-active {
+  background: var(--color-plum-soft);
+  color: var(--color-plum);
+  font-weight: 500;
 }
 
 .sidebar-group-break {

@@ -23,7 +23,7 @@
 
 .btn-quiet {
   background: transparent;
-  color: var(--color-muted);
+  color: var(--color-muted-strong);
   padding: 12px 8px;
 }
 
