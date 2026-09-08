@@ -87,17 +87,6 @@
   color: var(--color-muted);
 }
 
-.onboarding-roadmap {
-  margin-top: 12px;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 14px;
-}
-
-.onboarding-roadmap span {
-  color: var(--color-plum);
-}
-
 /* В левом поле кавычка помещается, только пока форма не прижата к краю окна:
    ниже этой ширины она встаёт отдельной строкой над заголовком. */
 @media (max-width: 820px) {

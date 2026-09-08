@@ -160,9 +160,6 @@ export function OnboardingScreen() {
             Это займёт минут десять. Дальше на основе этих ответов мы соберём портрет вашей аудитории,
             ваш метод и черновик первых постов — отвечайте своими словами, чем живее, тем точнее получится.
           </p>
-          <p className="onboarding-roadmap">
-            Дальше по порядку: <span>формат работы</span> · <span>ваши каналы</span> · <span>несколько вопросов</span>
-          </p>
         </header>
 
         <section className="onboarding-section">

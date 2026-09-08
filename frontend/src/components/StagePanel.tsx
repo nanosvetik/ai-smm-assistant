@@ -107,7 +107,7 @@ function StatusLine({ result, showDraftNote = true }: { result: AgentResult; sho
   return (
     <div className="stage-status-block">
       <p className="stage-status-line">
-        статус: {result.status} · версия {result.version}
+        {result.status}, версия {result.version}
       </p>
       {isDraft && showDraftNote && (
         <p className="stage-status-note">Черновик — это честность инструмента при неполных данных, не ошибка.</p>

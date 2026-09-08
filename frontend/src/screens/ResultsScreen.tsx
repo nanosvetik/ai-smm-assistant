@@ -104,7 +104,7 @@ export function ResultsScreen() {
 
         {bundle.reels && (
           <section className="results-item">
-            <p className="results-item-label">Reels · ВК</p>
+            <p className="results-item-label">Reels для ВК</p>
             {bundle.reels.theme && <h2 className="results-item-theme">{bundle.reels.theme}</h2>}
             <div className="results-item-body results-reels-body">
               {bundle.reels.videoUrl ? (
