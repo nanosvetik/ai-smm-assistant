@@ -448,8 +448,41 @@
   line-height: 1.55;
 }
 
+.landing-demo-note p {
+  margin: 0;
+}
+
 .landing-demo-note strong {
   color: var(--color-plum);
+}
+
+.landing-demo-list {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.landing-demo-list li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.landing-demo-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-plum);
+}
+
+.landing-demo-scope {
+  color: var(--color-muted);
 }
 
 .landing-form {
