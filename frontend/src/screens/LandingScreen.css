@@ -1,5 +1,11 @@
+/* Зерно вместо плоской заливки: страница должна ощущаться как бумага, а не как
+   пустой холст. Шум лежит фоном самой страницы, не оверлеем поверх контента —
+   поверх он слегка замыливал текст. Тот же шум продублирован на сливовой
+   полосе: без него она выглядела пластиковой рядом с зернистым фоном. */
 .landing-screen {
-  background: var(--color-bg);
+  --landing-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-color: var(--color-bg);
+  background-image: var(--landing-grain);
   overflow-x: clip;
 }
 
@@ -80,7 +86,7 @@
 .landing-hero-text h1 {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(34px, 5vw, 64px);
+  font-size: clamp(34px, 4.6vw, 58px);
   line-height: 1.06;
   margin-bottom: 24px;
   max-width: 16ch;
@@ -322,7 +328,8 @@
    секции читаются как воздух, а не как незаполненное место. Сплошная заливка
    идёт на всю ширину окна, содержимое остаётся в общей колонке 1160px. */
 .landing-contrast-band {
-  background: var(--color-plum);
+  background-color: var(--color-plum);
+  background-image: var(--landing-grain);
   color: var(--color-bg);
   margin: 40px 0;
 }
