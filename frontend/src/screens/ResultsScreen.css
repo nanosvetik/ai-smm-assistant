@@ -51,8 +51,11 @@
   max-width: 46ch;
 }
 
+/* 1080, а не 880: при 880 текстовая колонка выходила ~326px, то есть 35 знаков
+   в строке — пост читался рваным столбцом. Здесь под текст остаётся ~480px,
+   это порядка 55 знаков. */
 .results-showcase {
-  max-width: 880px;
+  max-width: 1080px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -76,9 +79,17 @@
 
 .results-item-body {
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 28px;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 32px;
   align-items: start;
+}
+
+/* Рилс — одна колонка: вертикальное видео и ссылка на сценарий под ним.
+   В две колонки рядом с видео высотой ~570px оставалась одинокая ссылка
+   «Показать сценарий» и полтысячи пикселей пустоты — блок читался как
+   незагрузившийся. Ширина колонки держит развёрнутый сценарий читаемым. */
+.results-reels-body {
+  grid-template-columns: minmax(0, 640px);
 }
 
 /* Editorial-ритм: чётные показы разворачиваются местами картинка/текст, не
@@ -129,6 +140,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* На узком экране кружок-„ и поля по 32px съедали треть ширины карточки:
+   на строку оставалось ~24 знака. Кружок здесь декоративный, на телефоне он
+   уступает место тексту. */
+@media (max-width: 560px) {
+  .results-post-card {
+    padding: 20px;
+    gap: 0;
+  }
+
+  .results-post-mark {
+    display: none;
+  }
 }
 
 .results-post-text {

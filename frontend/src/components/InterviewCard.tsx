@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import type { Questionnaire } from "../lib/api";
 import "./InterviewCard.css";
 
@@ -41,6 +42,38 @@ const QUESTIONS: {
   },
 ];
 
+// Поле растёт под ответ. Фиксированные три строки со внутренней прокруткой
+// прятали середину ответа: человек пишет сюда главное — свой метод и слова
+// клиентов, — а видел три строки и обрезанную по глифам четвёртую.
+function GrowingTextarea({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={3}
+    />
+  );
+}
+
 export function InterviewCard({ values, onChange }: InterviewCardProps) {
   return (
     <div className="interview-card">
@@ -54,11 +87,10 @@ export function InterviewCard({ values, onChange }: InterviewCardProps) {
               {question}
               {optional && <span className="interview-optional"> Необязательно.</span>}
             </p>
-            <textarea
+            <GrowingTextarea
               value={values[key] ?? ""}
-              onChange={(e) => onChange({ [key]: e.target.value })}
+              onChange={(next) => onChange({ [key]: next })}
               placeholder={placeholder}
-              rows={3}
             />
           </div>
         </div>

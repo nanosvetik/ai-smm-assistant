@@ -106,7 +106,7 @@ export function ResultsScreen() {
           <section className="results-item">
             <p className="results-item-label">Reels · ВК</p>
             {bundle.reels.theme && <h2 className="results-item-theme">{bundle.reels.theme}</h2>}
-            <div className="results-item-body">
+            <div className="results-item-body results-reels-body">
               {bundle.reels.videoUrl ? (
                 <div className="results-media results-media-video">
                   <video src={bundle.reels.videoUrl} controls playsInline />
