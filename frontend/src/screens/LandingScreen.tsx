@@ -1,12 +1,11 @@
 import { useRef, useState } from "react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { ApiError, submitAccessRequest } from "../lib/api";
 import { Button } from "../components/Button";
 import "./LandingScreen.css";
 
-gsap.registerPlugin(ScrollTrigger, useGSAP);
+gsap.registerPlugin(useGSAP);
 
 // Название бренда закреплено решением сессии 2026-09-04 (см. CLAUDE.md).
 // Домен svoislova-ai.ru намеренно не совпадает с отображаемым именем.
@@ -85,9 +84,18 @@ export function LandingScreen() {
   // подзаголовок и кнопка выезжают внахлёст, карточка примера — следом.
   // Дальше по странице — мягкое проявление на скролле, без scroll-hijacking
   // и пиннинга. gsap.matchMedia уважает prefers-reduced-motion.
+  //
+  // Проявление на скролле сделано на IntersectionObserver, а не на
+  // ScrollTrigger: тот прячет элементы сразу и показывает их только после
+  // собственного пересчёта позиций — если пересчёт по любой причине не
+  // сработал (смена высоты страницы, съёмка страницы целиком, ошибка
+  // плагина), нижние секции вместе с формой заявки оставались невидимыми
+  // навсегда. IO опирается на нативный колбэк браузера, а ниже дополнительно
+  // стоит страховка: если observer недоступен — контент просто показывается.
   useGSAP(
     () => {
       const mm = gsap.matchMedia();
+      const reveals = gsap.utils.toArray<HTMLElement>(".reveal");
 
       mm.add("(prefers-reduced-motion: reduce)", () => {
         gsap.set(".hero-animate, .reveal", { autoAlpha: 1, y: 0 });
@@ -106,15 +114,33 @@ export function LandingScreen() {
           "-=0.45"
         );
 
-        document.querySelectorAll<HTMLElement>(".reveal").forEach((el) => {
-          gsap.from(el, {
-            autoAlpha: 0,
-            y: 24,
-            duration: 0.7,
-            ease: "power2.out",
-            scrollTrigger: { trigger: el, start: "top 85%", once: true },
-          });
-        });
+        if (typeof IntersectionObserver === "undefined") return;
+
+        gsap.set(reveals, { autoAlpha: 0, y: 24 });
+
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+              io.unobserve(entry.target);
+              gsap.to(entry.target, {
+                autoAlpha: 1,
+                y: 0,
+                duration: 0.7,
+                ease: "power2.out",
+                overwrite: "auto",
+              });
+            });
+          },
+          { rootMargin: "0px 0px -10% 0px" }
+        );
+
+        reveals.forEach((el) => io.observe(el));
+
+        return () => {
+          io.disconnect();
+          gsap.set(reveals, { autoAlpha: 1, y: 0 });
+        };
       });
 
       return () => mm.revert();
@@ -152,7 +178,12 @@ export function LandingScreen() {
           </span>
           {BRAND_NAME}
         </span>
-        <Button type="button" variant="quiet" onClick={scrollToForm}>
+        <Button
+          type="button"
+          variant="quiet"
+          className="landing-header-cta"
+          onClick={scrollToForm}
+        >
           Получить демо-доступ
         </Button>
       </header>

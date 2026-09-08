@@ -56,7 +56,9 @@ export function ResultsScreen() {
         body: "Попробуйте обновить — если не поможет, напишите тому, кто прислал ссылку.",
       },
     };
-    const { title, body } = messages[status];
+    // status === "ready" при пустом bundle — не ожидаемая ветка, но
+    // формально возможная: показываем общее сообщение вместо падения.
+    const { title, body } = messages[status === "ready" ? "unknown_error" : status];
     return (
       <div className="results-screen">
         <div className="results-error-card">
