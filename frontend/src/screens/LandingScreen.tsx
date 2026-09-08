@@ -261,9 +261,7 @@ export function LandingScreen() {
       <section className="landing-section landing-split landing-roadmap">
         <div className="landing-split-head reveal">
           <h2>Это только начало</h2>
-          <p className="landing-split-note">
-            Сейчас работаем с Telegram и ВК. Что добавляем дальше:
-          </p>
+          <p className="landing-split-note">Что появится дальше:</p>
         </div>
         <ul className="landing-roadmap-list reveal">
           {ROADMAP.map((item, i) => (
