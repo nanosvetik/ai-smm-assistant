@@ -38,7 +38,8 @@ export const accessRequests = sqliteTable("access_requests", {
   reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
 });
 
-// Одноразовая ссылка (сгорает при первом использовании, не привязана к IP) и
+// Одноразовая ссылка (сгорает при отправке анкеты, не при открытии, и не
+// привязана к IP — см. routes/onboarding.ts) и
 // долгоживущая read-only ссылка на результаты — обе "magic link", различаются
 // полем kind. См. раздел 2 Project Specification v2.md.
 export const accessLinks = sqliteTable("access_links", {
