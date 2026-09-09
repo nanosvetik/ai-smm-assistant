@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import multer from "multer";
 import path from "node:path";
 import { mkdirSync } from "node:fs";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
-import { socialLinks, onboardingProfiles, referenceFiles } from "../db/schema.js";
+import { accessLinks, socialLinks, onboardingProfiles, referenceFiles } from "../db/schema.js";
 import { generateId } from "../lib/tokens.js";
 
 export const onboardingRouter = Router();
@@ -88,6 +88,23 @@ onboardingRouter.post("/onboarding", async (req, res) => {
         submittedAt: now,
       },
     });
+
+  // Только здесь ссылка на анкету и становится использованной — не при
+  // открытии страницы (решение сессии 2026-09-09, обоснование в
+  // routes/access.ts). Помечаем все ещё живые onboarding-ссылки клиента:
+  // сессия не помнит, каким токеном была получена, а их у одного клиента
+  // больше одной только в нештатных случаях (оператор выдал повторную).
+  //
+  // Пересдать форму клиент по-прежнему может — сессия живёт 24 часа и
+  // ссылка для этого не нужна. Без сессии (другое устройство) понадобится
+  // новая ссылка от оператора; раньше, при сжигании на открытии, было ровно
+  // так же, только наступало раньше.
+  await db
+    .update(accessLinks)
+    .set({ usedAt: now })
+    .where(
+      and(eq(accessLinks.clientId, clientId), eq(accessLinks.kind, "onboarding"), isNull(accessLinks.usedAt))
+    );
 
   res.json({ status: "ok" });
 });

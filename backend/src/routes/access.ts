@@ -54,8 +54,13 @@ accessRouter.post("/access-requests", async (req, res) => {
   res.status(201).json({ id, status: "pending" });
 });
 
-// Обмен одноразовой ссылки на сессию. Сгорает по факту первого успешного
-// использования, не по IP (см. раздел 2 спецификации — там объяснено почему).
+// Обмен ссылки на сессию. **Открытие страницы ссылку не сжигает** — она
+// помечается использованной только после успешной отправки анкеты (решение
+// сессии 2026-09-09, см. docs/decision-log.md). Причина: почтовые антивирусы
+// и предпросмотр ссылок в почтовых клиентах ходят по ссылкам из письма сами,
+// до человека; при сжигании на GET такой заход убивал ссылку, и живой клиент
+// получал «уже использована», ничего не сделав. Ограничение по времени
+// (48 часов) осталось прежним и работает независимо.
 accessRouter.get("/access/:token", async (req, res) => {
   const { token } = req.params;
 
@@ -75,8 +80,6 @@ accessRouter.get("/access/:token", async (req, res) => {
   }
 
   const now = new Date();
-  await db.update(accessLinks).set({ usedAt: now }).where(eq(accessLinks.token, token));
-
   const sessionToken = generateToken();
   const sessionExpiresAt = new Date(now.getTime() + SESSION_TTL_MS);
   await db.insert(sessions).values({
