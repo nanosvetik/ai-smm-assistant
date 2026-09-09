@@ -3,6 +3,10 @@
 .env.local
 *.env
 
+# Личный запускатор Claude Code через шлюз OmniRoute: к сервису отношения не
+# имеет, но содержит токен шлюза открытым текстом.
+omni-claude.bat
+
 # Dependencies
 node_modules/
 **/node_modules/
