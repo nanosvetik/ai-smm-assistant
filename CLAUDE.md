@@ -73,6 +73,8 @@
 
 ```
 /backend        — Express API, TypeScript, SQLite/Drizzle
+  /src/app.ts     — сборка express-приложения (без listen) — её же поднимают тесты
+  /src/index.ts   — точка входа: .env, listen, запуск Telegram-бота
   /src/db         — схема Drizzle, подключение, миграции
   /src/routes     — HTTP-роуты (access, onboarding, agents, results, reelsReferences)
   /src/agents     — один файл-оркестрация на агента + reviewedContent.ts (retry copywriter/reels-writer ↔ editor-in-chief) + pipeline.ts (run-all)
@@ -84,7 +86,7 @@
 /frontend       — React/Vite/TS: лендинг, онбординг, кабинет, страница результатов
   /src/screens    — Landing, TokenExchange, Onboarding, Dashboard, Results
   /src/components — Sidebar, StagePanel, ContentPlanGrid, ImageGenerationBlock, VideoGenerationBlock, ReelsReferenceUpload, LinksField, InterviewCard, Button
-  /src/lib        — api.ts, stages.ts (9 этапов сайдбара), markdown.ts, planData.ts, contentPlanExport.ts
+  /src/lib        — api.ts, stages.ts (9 этапов сайдбара), stageProgress.ts, markdown.ts, planData.ts, contentPlanExport.ts
   /src/assets/fonts — самохостинг Alegreya + Golos Text (woff2)
 /smm-mcp        — MCP-сервер медиа-генерации, отдельный npm-пакет
 /prompts        — системные промпты 12 агентов
@@ -118,6 +120,7 @@
 ## Конвенции кода
 
 - TypeScript строгий режим (`strict: true`) в обоих пакетах.
+- Тесты — vitest, файлы `*.test.ts` рядом с проверяемым модулем, запуск `npm test` из корня. Покрываются места, где уже случались живые баги (разбор документов агентов, прогресс этапов, механика ссылок доступа), а не всё подряд. Логика, которую нужно проверить, выносится в `lib/` — тестировать её внутри экрана нельзя.
 - Без комментариев, объясняющих очевидное — только там, где неочевидна причина.
 - Не вводить абстракции/фреймворки сверх того, что реально нужно для MVP-объёма.
 - Не создавать пустые папки-заготовки под будущий функционал — структура появляется вместе с первым реальным кодом.

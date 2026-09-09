@@ -1,24 +1,13 @@
 import { useEffect, useState } from "react";
 import { ApiError, getAgentResult, getOnboarding, runAgent, type AgentResult, type Platform } from "../lib/api";
 import { STAGES, type StageConfig } from "../lib/stages";
+import { buildStageProgress, isStageDone, type StageResult } from "../lib/stageProgress";
 import { AppHeader } from "../components/AppHeader";
 import { Sidebar, type StageProgress } from "../components/Sidebar";
 import { StagePanel } from "../components/StagePanel";
 import "./DashboardScreen.css";
 
 type LoadState = "loading" | "no_session" | "ready";
-
-type StageResult = AgentResult | null | Partial<Record<Platform, AgentResult | null>>;
-
-function isDone(stage: StageConfig, result: StageResult, platforms: Platform[]): boolean {
-  if (!stage.needsPlatform) return result != null;
-  // platforms.every(...) на пустом массиве вакуумно даёт true — без явной
-  // проверки длины этап без единой площадки клиента ошибочно считался бы
-  // пройденным.
-  if (platforms.length === 0) return false;
-  const byPlatform = (result ?? {}) as Partial<Record<Platform, AgentResult | null>>;
-  return platforms.every((p) => byPlatform[p] != null);
-}
 
 function requestBody(stage: StageConfig, platform?: Platform): Record<string, unknown> | undefined {
   if (stage.key === "copywriter") return { platform, day: 1 };
@@ -65,7 +54,7 @@ export function DashboardScreen() {
         );
         setSecondaryResults(Object.fromEntries(secondaryEntries));
 
-        const firstNotDone = stages.find((s) => !isDone(s, resultMap[s.key], clientPlatforms));
+        const firstNotDone = stages.find((s) => !isStageDone(s, resultMap[s.key], clientPlatforms));
         setActiveKey((firstNotDone ?? stages[stages.length - 1]).key);
         setLoadState("ready");
       })
@@ -119,18 +108,7 @@ export function DashboardScreen() {
   }
 
   const visibleStages = STAGES.filter((s) => !s.vkOnly || platforms.includes("vk"));
-  const progress: Record<string, StageProgress> = {};
-  let currentFound = false;
-  for (const stage of visibleStages) {
-    if (isDone(stage, results[stage.key], platforms)) {
-      progress[stage.key] = "done";
-    } else if (!currentFound) {
-      progress[stage.key] = "current";
-      currentFound = true;
-    } else {
-      progress[stage.key] = "future";
-    }
-  }
+  const progress: Record<string, StageProgress> = buildStageProgress(visibleStages, results, platforms);
 
   const activeStage = visibleStages.find((s) => s.key === activeKey) ?? visibleStages[0];
 
