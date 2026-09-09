@@ -121,7 +121,7 @@ export function OnboardingScreen() {
       <div className="onboarding-screen">
         <div className="onboarding-no-session">
           <h1>Нет доступа</h1>
-          <p>Откройте эту страницу по ссылке, которую мы прислали вам в чат.</p>
+          <p>Откройте эту страницу по ссылке, которую мы прислали вам на почту.</p>
         </div>
       </div>
     );

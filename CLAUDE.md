@@ -43,7 +43,7 @@
 
 ## Секреты и окружение
 
-`.env` в `.gitignore` — **никогда не коммитить секреты**: `OPENROUTER_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `VK_SERVICE_TOKEN`, `UNISENDER_API_KEY` / `MAIL_FROM` / `MAIL_FROM_NAME` и любые будущие ключи.
+`.env` в `.gitignore` — **никогда не коммитить секреты**: `OPENROUTER_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `VK_SERVICE_TOKEN`, `UNISENDER_API_KEY` / `MAIL_FROM` / `MAIL_FROM_NAME` / `MAIL_REPLY_TO` и любые будущие ключи.
 
 Опциональные пути: `UPLOAD_DIR`, `BASE_URL` (по умолчанию дев-порт фронтенда `5173` — в проде фронт и API на одном домене через nginx/Caddy).
 

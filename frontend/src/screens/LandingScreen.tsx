@@ -321,6 +321,9 @@ export function LandingScreen() {
           {status === "done" ? (
             <p className="landing-cta-done">
               Заявка отправлена. Ссылка придёт на {email || "указанную почту"} после проверки.
+              {" "}
+              <strong>Если письма нет — загляните в «Спам».</strong> Мы пишем с нового адреса, и
+              почтовые службы поначалу перестраховываются.
             </p>
           ) : (
             <form className="landing-form" onSubmit={handleSubmit}>

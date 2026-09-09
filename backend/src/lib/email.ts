@@ -36,6 +36,11 @@ export async function sendMail(to: string, subject: string, text: string): Promi
         subject,
         from_email: fromEmail,
         from_name: process.env.MAIL_FROM_NAME ?? DEFAULT_FROM_NAME,
+        // Адрес отправителя живёт на домене сервиса, а MX-записей у него нет —
+        // ответить на такое письмо некуда. Тексты писем и экранов при этом
+        // предлагают клиенту ответить, поэтому ответы уводим на живой ящик
+        // оператора. Пока MAIL_REPLY_TO не задан, поле просто не отправляется.
+        ...(process.env.MAIL_REPLY_TO ? { reply_to: process.env.MAIL_REPLY_TO } : {}),
         body: { plaintext: text },
         // Письма транзакционные (ссылка на анкету, ссылка на результаты), не
         // рассылка — блок «отписаться» в них неуместен. Влияет только на
