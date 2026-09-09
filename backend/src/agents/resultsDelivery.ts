@@ -53,20 +53,32 @@ export async function ensureResultsLinkSent(clientId: string): Promise<void> {
 
   const { link, expiresAt } = await generateResultsLink(clientId);
 
+  // Ошибка отправки не должна прерывать функцию: ссылка в БД уже создана, а
+  // значит следующий вызов выйдет по проверке `existing` в самом начале и
+  // второй попытки не будет никогда. Без перехвата один сбой почты (адрес в
+  // чёрном списке сервиса после отписки, недоступность API) означал бы, что
+  // клиент не получит результат вообще, а оператор узнал бы об этом только из
+  // логов — вызывают эту функцию fire-and-forget.
+  let delivered = false;
   if (isEmailConfigured()) {
-    await sendMail(
-      client.contactValue,
-      "Ваш демо-контент готов",
-      `Здравствуйте${client.name ? `, ${client.name}` : ""}!\n\nГотовый демо-контент — посты, картинка и сценарий Reels под ваш голос и метод — можно посмотреть здесь:\n${link}\n\nСсылка не одноразовая и действует до ${formatExpiryDate(expiresAt)} — возвращайтесь к ней в любой момент и смело пересылайте друзьям, коллегам, куда угодно, где это может быть интересно.`
-    );
-    return;
+    try {
+      await sendMail(
+        client.contactValue,
+        "Ваш демо-контент готов",
+        `Здравствуйте${client.name ? `, ${client.name}` : ""}!\n\nГотовый демо-контент — посты, картинка и сценарий Reels под ваш голос и метод — можно посмотреть здесь:\n${link}\n\nСсылка не одноразовая и действует до ${formatExpiryDate(expiresAt)} — возвращайтесь к ней в любой момент и смело пересылайте друзьям, коллегам, куда угодно, где это может быть интересно.`
+      );
+      delivered = true;
+    } catch (err) {
+      console.error("[results] email delivery failed:", err);
+    }
   }
+  if (delivered) return;
 
-  // SMTP не настроен — сообщаем оператору, чтобы переслать вручную, тем же
-  // принципом, что и фолбэк в approval.ts для одобрения заявки.
+  // Почта не настроена или письмо не ушло — сообщаем оператору, чтобы переслать
+  // вручную, тем же принципом, что и фолбэк в approval.ts для одобрения заявки.
   if (isTelegramConfigured()) {
     sendAdminMessage(
-      `Демо-контент готов у клиента ${client.contactValue}${client.name ? ` (${client.name})` : ""}\n\nСсылка на результаты (перешлите клиенту вручную):\n${link}\nДействует до: ${expiresAt.toISOString()}`
+      `Демо-контент готов у клиента ${client.contactValue}${client.name ? ` (${client.name})` : ""}\n\nПисьмо клиенту не ушло — перешлите ссылку вручную:\n${link}\nДействует до: ${expiresAt.toISOString()}`
     ).catch((err) => console.error("[results] failed to notify admin:", err));
   }
 }
