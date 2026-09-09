@@ -1,0 +1,39 @@
+# Локальный запуск одной командой: docker compose up --build
+# Прод разворачивается нативно — почему так, написано в docs/decision-log.md.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    # Ключей может не быть вовсе: без них поднимаются лендинг, анкета и
+    # кабинет, а этапы, которым нужна модель, честно сообщают об ошибке.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Адрес, который видит человек, — на него ведут ссылки в письмах.
+      BASE_URL: http://localhost:8080
+      NODE_ENV: production
+    volumes:
+      - db:/app/data
+      - uploads:/app/uploads
+      - media:/app/workspace
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    # Порт можно переопределить, если 8080 уже занят: WEB_PORT=8090 docker compose up
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+# База, файлы клиентов и сгенерированное медиа переживают пересоздание
+# контейнеров: всё это — данные, а не часть образа.
+volumes:
+  db:
+  uploads:
+  media:

@@ -88,6 +88,7 @@
   /src/components — Sidebar, StagePanel, ContentPlanGrid, ImageGenerationBlock, VideoGenerationBlock, ReelsReferenceUpload, LinksField, InterviewCard, Button
   /src/lib        — api.ts, stages.ts (9 этапов сайдбара), stageProgress.ts, markdown.ts, planData.ts, contentPlanExport.ts
   /src/assets/fonts — самохостинг Alegreya + Golos Text (woff2)
+/docker         — api.Dockerfile, web.Dockerfile, nginx.conf (локальный запуск через compose; прод разворачивается нативно)
 /smm-mcp        — MCP-сервер медиа-генерации, отдельный npm-пакет
 /prompts        — системные промпты 12 агентов
 /docs           — спецификация, состояние бэкенда/фронтенда, журнал решений, грабли, сториборд
