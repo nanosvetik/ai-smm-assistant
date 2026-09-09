@@ -7,6 +7,7 @@ import { onboardingRouter } from "./routes/onboarding.js";
 import { agentsRouter } from "./routes/agents.js";
 import { reelsReferencesRouter } from "./routes/reelsReferences.js";
 import { resultsRouter } from "./routes/results.js";
+import { staticSecurityHeaders } from "./lib/uploads.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,12 +25,13 @@ export function createApp() {
   // Раздача сгенерированных картинок и видео. Эти файлы должны открываться по
   // прямой ссылке — из письма и со страницы результатов, поэтому доступ к ним
   // не закрыт сессией (последствия описаны в docs/security.md).
-  app.use("/media", express.static(path.join(__dirname, "..", "..", "workspace")));
+  app.use("/media", express.static(path.join(__dirname, "..", "..", "workspace"), { setHeaders: staticSecurityHeaders }));
 
   // Зеркальная раздача референсов, загруженных клиентом: без неё интерфейс не
-  // покажет превью только что добавленного файла.
+  // покажет превью только что добавленного файла. Заголовки здесь обязательны —
+  // содержимое пришло от клиента и лежит на том же домене, что и сервис.
   const uploadRoot = process.env.UPLOAD_DIR ?? path.join(__dirname, "..", "..", "uploads");
-  app.use("/uploads", express.static(uploadRoot));
+  app.use("/uploads", express.static(uploadRoot, { setHeaders: staticSecurityHeaders }));
 
   // Порядок обязателен: публичные роутеры идут раньше защищённых. Три нижних
   // подключают проверку сессии через use() без пути — такой обработчик

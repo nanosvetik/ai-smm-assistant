@@ -1,13 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import { and, eq, isNull } from "drizzle-orm";
-import multer from "multer";
 import path from "node:path";
-import { mkdirSync } from "node:fs";
 import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
 import { accessLinks, socialLinks, onboardingProfiles, referenceFiles } from "../db/schema.js";
 import { generateId } from "../lib/tokens.js";
+import { createImageUpload, handleUpload } from "../lib/uploads.js";
 
 export const onboardingRouter = Router();
 onboardingRouter.use(requireSession);
@@ -131,22 +130,10 @@ onboardingRouter.get("/onboarding", async (req, res) => {
   });
 });
 
-const upload = multer({
-  storage: multer.diskStorage({
-    // Категория идёт параметром маршрута, не полем multipart-тела: порядок
-    // частей в multipart не гарантирован, и текстовое поле после файла может
-    // быть ещё не распаршено на момент этого колбэка.
-    destination: (req, _file, cb) => {
-      const dir = path.join(UPLOAD_ROOT, req.clientId!, req.params.category);
-      mkdirSync(dir, { recursive: true });
-      cb(null, dir);
-    },
-    filename: (_req, file, cb) => {
-      cb(null, `${generateId()}${path.extname(file.originalname)}`);
-    },
-  }),
-  limits: { fileSize: 20 * 1024 * 1024 },
-});
+// Категория идёт параметром маршрута, не полем multipart-тела: порядок частей
+// в multipart не гарантирован, и текстовое поле после файла может быть ещё не
+// распаршено на момент выбора каталога.
+const upload = createImageUpload((req) => path.join(UPLOAD_ROOT, req.clientId!, req.params.category));
 
 // Медиа-референс, один файл за запрос, с разбивкой по категориям.
 onboardingRouter.post(
@@ -158,7 +145,7 @@ onboardingRouter.post(
     }
     next();
   },
-  upload.single("file"),
+  handleUpload(upload.single("file")),
   async (req, res) => {
     if (!req.file) {
       res.status(400).json({ error: "file_required" });

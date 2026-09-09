@@ -81,7 +81,7 @@
   /src/parsers    — telegram.ts / vk.ts: посты (fetchPosts) и шапка профиля (fetchProfileHeader)
   /src/admin      — CLI подтверждения заявок + общая approve/reject-логика
   /src/telegram   — long-polling бот для уведомлений оператору
-  /src/lib        — токены, Telegram Bot API, OpenRouter-клиент, email, парсеры frontmatter/JSON-блоков, медиа-генерация
+  /src/lib        — токены, Telegram Bot API, OpenRouter-клиент, email, парсеры frontmatter/JSON-блоков, медиа-генерация, uploads.ts (типы загрузок + заголовки статики), outboundProxy.ts
   /src/middleware — requireSession
 /frontend       — React/Vite/TS: лендинг, онбординг, кабинет, страница результатов
   /src/screens    — Landing, TokenExchange, Onboarding, Dashboard, Results

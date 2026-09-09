@@ -1,14 +1,27 @@
 import { ApprovalError, approveRequest, rejectRequest } from "../admin/approval.js";
-import { answerCallbackQuery, editMessageText, getUpdates, isTelegramConfigured, type TelegramUpdate } from "../lib/telegram.js";
+import {
+  answerCallbackQuery,
+  editMessageText,
+  getUpdates,
+  isFromAdmin,
+  isTelegramConfigured,
+  type TelegramUpdate,
+} from "../lib/telegram.js";
 
 let offset = 0;
 let running = false;
 
 async function handleUpdate(update: TelegramUpdate) {
-  console.log("[telegram] update:", JSON.stringify(update));
   const cb = update.callback_query;
   if (!cb?.data || !cb.message) {
-    console.log("[telegram] update has no callback_query.data/message, ignoring");
+    console.log("[telegram] update without callback data, ignoring");
+    return;
+  }
+
+  // Проверка до разбора данных: нажатие кнопки выдаёт доступ к сервису, и
+  // выполнять его можно только по команде оператора.
+  if (!isFromAdmin(cb)) {
+    console.warn(`[telegram] callback from non-admin ${cb.from?.id ?? "unknown"}, ignoring`);
     return;
   }
 

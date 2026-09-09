@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { DragEvent } from "react";
-import { deleteReelsReference, getReelsReferences, uploadReelsReference, type ReelsReferenceFile } from "../lib/api";
+import { ApiError, deleteReelsReference, getReelsReferences, uploadReelsReference, type ReelsReferenceFile } from "../lib/api";
 import "./ReelsReferenceUpload.css";
 
 // Референсы для конкретного рилса — показывается только после того, как
@@ -34,8 +34,14 @@ export function ReelsReferenceUpload() {
         const uploaded = await uploadReelsReference(file);
         setReferences((r) => [...r, uploaded]);
       }
-    } catch {
-      setError("Не удалось загрузить файл. Попробуйте ещё раз.");
+    } catch (err) {
+      // Отказ по формату повтором не лечится — предлагать «попробуйте ещё раз»
+      // здесь значит отправить человека по кругу.
+      if (err instanceof ApiError && err.status === 415) {
+        setError("Такой формат не подойдёт. Нужен JPG, PNG, WEBP или GIF.");
+      } else {
+        setError("Не удалось загрузить файл. Попробуйте ещё раз.");
+      }
     } finally {
       setIsUploading(false);
     }
@@ -87,7 +93,7 @@ export function ReelsReferenceUpload() {
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif"
           multiple
           hidden
           onChange={(e) => handleFiles(e.target.files)}

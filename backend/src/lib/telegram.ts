@@ -57,13 +57,29 @@ export function answerCallbackQuery(callbackQueryId: string, text?: string) {
   });
 }
 
+export interface TelegramCallbackQuery {
+  id: string;
+  data?: string;
+  from?: { id: number };
+  message?: { message_id: number; chat: { id: number } };
+}
+
 export interface TelegramUpdate {
   update_id: number;
-  callback_query?: {
-    id: string;
-    data?: string;
-    message?: { message_id: number; chat: { id: number } };
-  };
+  callback_query?: TelegramCallbackQuery;
+}
+
+// Нажатие кнопки — это команда одобрить или отклонить заявку, то есть выдать
+// доступ к сервису. Полагаться на то, что кнопки приходят только в один чат,
+// нельзя: токен бота живёт в переменных окружения, а бота могут добавить в
+// общий чат. Проверяем и отправителя, и чат — оба должны совпасть с
+// оператором.
+export function isFromAdmin(cb: TelegramCallbackQuery): boolean {
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!adminChatId) return false;
+  const admin = Number(adminChatId);
+  if (!Number.isFinite(admin)) return false;
+  return cb.from?.id === admin && cb.message?.chat.id === admin;
 }
 
 export function getUpdates(offset: number) {

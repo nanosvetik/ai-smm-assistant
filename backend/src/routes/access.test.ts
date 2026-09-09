@@ -117,6 +117,67 @@ describe("ссылка на анкету", () => {
   });
 });
 
+describe("загрузка референсов", () => {
+  async function sessionCookie(email: string): Promise<string> {
+    const token = await createApprovedLink(email);
+    const res = await fetch(`${baseUrl}/api/access/${token}`);
+    return res.headers.get("set-cookie")!.split(";")[0];
+  }
+
+  async function upload(cookie: string, filename: string, type: string, body: string) {
+    const form = new FormData();
+    form.append("file", new Blob([body], { type }), filename);
+    return fetch(`${baseUrl}/api/reels-references`, { method: "POST", headers: { Cookie: cookie }, body: form });
+  }
+
+  it("принимает изображение и даёт ему собственное имя", async () => {
+    const cookie = await sessionCookie("upload-ok@example.com");
+    const res = await upload(cookie, "фото клиента.png", "image/png", "not-really-png-but-enough");
+    expect(res.status).toBe(201);
+    const saved = (await res.json()) as { filePath: string; originalFilename: string };
+    // Имя на диске задаём сами, а присланное сохраняем только для показа —
+    // и оно не должно превратиться в кракозябры.
+    expect(saved.filePath.endsWith(".png")).toBe(true);
+    expect(saved.filePath).not.toContain("фото");
+    expect(saved.originalFilename).toBe("фото клиента.png");
+  });
+
+  it("отклоняет html, который иначе исполнился бы на домене сервиса", async () => {
+    const cookie = await sessionCookie("upload-html@example.com");
+    const res = await upload(cookie, "payload.html", "text/html", "<script>alert(1)</script>");
+    expect(res.status).toBe(415);
+    expect(await res.json()).toMatchObject({ error: "unsupported_file_type" });
+  });
+
+  it("отклоняет svg — он тоже исполняет скрипты", async () => {
+    const cookie = await sessionCookie("upload-svg@example.com");
+    const res = await upload(cookie, "payload.svg", "image/svg+xml", "<svg xmlns='http://www.w3.org/2000/svg'/>");
+    expect(res.status).toBe(415);
+  });
+
+  it("не даёт подделать расширение через имя файла", async () => {
+    // Тип можно заявить любой, но расширение назначается по нему, а не по
+    // присланному имени — html-файл не появится даже под видом картинки.
+    const cookie = await sessionCookie("upload-spoof@example.com");
+    const res = await upload(cookie, "payload.html", "image/png", "<script>alert(1)</script>");
+    expect(res.status).toBe(201);
+    const saved = (await res.json()) as { filePath: string };
+    expect(saved.filePath.endsWith(".png")).toBe(true);
+    expect(saved.filePath).not.toContain(".html");
+  });
+
+  it("отдаёт загруженное с заголовками, запрещающими исполнение", async () => {
+    const cookie = await sessionCookie("upload-headers@example.com");
+    const created = await upload(cookie, "картинка.png", "image/png", "png-bytes");
+    const { filePath } = (await created.json()) as { filePath: string };
+
+    const served = await fetch(`${baseUrl}/uploads/${filePath}`);
+    expect(served.status).toBe(200);
+    expect(served.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(served.headers.get("content-security-policy")).toContain("sandbox");
+  });
+});
+
 describe("защита кабинета", () => {
   it("не отдаёт данные анкеты без сессии", async () => {
     const res = await fetch(`${baseUrl}/api/onboarding`);
