@@ -6,9 +6,9 @@ import { Button } from "./Button";
 import "./ContentPlanGrid.css";
 
 // Сетка контент-плана поверх структурированного JSON-блока content-planner
-// (см. backend/src/lib/planData.ts) — только реально запланированные дни,
-// без строк-заглушек на дни без поста (см. решение сессии про частоту
-// публикаций в prompts/content-planner.md).
+// (backend/src/lib/planData.ts). Показываются только те дни, на которые
+// действительно есть публикация: строки-заглушки создавали бы впечатление,
+// что писать надо каждый день.
 export function ContentPlanGrid({ plan }: { plan: ContentPlanData }) {
   const [isDownloading, setIsDownloading] = useState(false);
 

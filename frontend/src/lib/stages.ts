@@ -1,10 +1,9 @@
 import type { Platform } from "./api";
 
-// Ровно 9 пунктов сайдбара из Брифа 2 design-brief-ателье.md — не 1-в-1 с
-// таблицей 12 агентов раздела 4 спецификации. visual-style-analyzer и
-// profile-header-analyzer — вспомогательные входы (запускаются сами там, где
-// нужны), editor-in-chief теперь встроен в copywriter/reels-writer через
-// reviewedContent.ts на бэкенде — не отдельный шаг для пользователя.
+// Девять пунктов меню, а не двенадцать по числу агентов: клиент видит этапы
+// своей работы, а не устройство системы. visual-style-analyzer и
+// profile-header-analyzer запускаются сами там, где нужны, а редакторская
+// проверка встроена в генерацию текста и отдельным шагом не показывается.
 export interface StageConfig {
   key: string;
   label: string;

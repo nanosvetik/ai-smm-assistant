@@ -2,9 +2,9 @@ import * as cheerio from "cheerio";
 import { proxiedFetch } from "../lib/outboundProxy.js";
 import type { ParsedPost, ProfileHeader } from "./types.js";
 
-// Публичное веб-превью, не Bot API — свой канал разбираем так же, как чужой
-// канал конкурента, у которого бот не является админом. См. раздел 3
-// спецификации, Шаг 1.
+// Разбираем публичное веб-превью канала, а не Bot API: свой канал клиента и
+// канал конкурента должны читаться одинаково, а в чужом канале бот не админ и
+// доступа к API у него нет.
 function extractChannel(url: string): string {
   const cleaned = url
     .trim()
@@ -53,11 +53,9 @@ export async function fetchTelegramPosts(channelUrl: string, limit = 20): Promis
   return posts.slice(-limit).reverse();
 }
 
-// У Telegram-канала нет обложки (coverUrl), только круглый аватар — в
-// отличие от ВК-сообщества. Аватар лежит как <img> внутри <i
-// class="tgme_page_photo_image">, не отдельным полем API (публичного Bot
-// API для чужого канала здесь нет, только HTML-превью — см. Шаг 1 в
-// prompts/... и обоснование в разделе 3 спецификации).
+// У Telegram-канала нет обложки, только круглый аватар — в отличие от
+// ВК-сообщества. Отдельного поля в ответе нет: аватар приходится доставать из
+// разметки превью, потому что API для чужого канала недоступно.
 export async function fetchTelegramProfileHeader(channelUrl: string): Promise<ProfileHeader> {
   const channel = extractChannel(channelUrl);
   const res = await proxiedFetch(`https://t.me/s/${channel}`);

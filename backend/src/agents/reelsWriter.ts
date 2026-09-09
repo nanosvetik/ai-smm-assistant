@@ -7,11 +7,8 @@ import { chatCompletion } from "../lib/openrouter.js";
 import { parseFrontmatter, replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 
-// DeepSeek V4 Pro, не Flash — в отличие от остальных контент-агентов.
-// Раскадровка и хук на 3 секунды требуют более сильной творческой части,
-// чем обычный пост; таблица агентов в спецификации (раздел 4) для этой
-// строки указывает "DeepSeek V4" без суффикса — на OpenRouter реально
-// существуют только -flash и -pro варианты, решение сессии — Pro.
+// Pro, а не Flash: раскадровка и хук, который должен сработать за три
+// секунды, требуют более сильной творческой части, чем обычный пост.
 const MODEL = "deepseek/deepseek-v4-pro";
 const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "reels-writer.md");
 

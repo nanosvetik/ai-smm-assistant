@@ -64,17 +64,11 @@ export interface GeneratedVideoFile {
 // отдельно, т.к. smm-mcp — MCP stdio-сервер для Claude Code, не HTTP-сервис,
 // который мог бы вызвать продакшн-бэкенд.
 //
-// referenceImagePath (решение сессии 2026-09-04, пересматривает более раннее
-// решение "без референсов вообще"): раньше здесь не было ни одного
-// reference_image/first_frame_url/last_frame_url — та версия API принимала
-// только публичный HTTP(S) URL, который OpenRouter скачивает сам (не
-// работало на localhost в деве). У OpenRouter с тех пор появилась новая
-// схема параметров — frame_images[]/input_references[], та же обёртка
-// {type: "image_url", image_url: {url}}, что и в chat completions для
-// vision, и она документированно принимает data:-URI (проверено доками +
-// live-запросом к /api/v1/videos/models: kwaivgi/kling-v3.0-pro поддерживает
-// frame_images с first_frame/last_frame). Кодируем локальный файл в base64
-// и передаём как первый кадр — публичный домен/раздача больше не нужны.
+// Референсный кадр передаётся как data:-URI, а не ссылкой. Прежняя схема
+// параметров принимала только публичный HTTP-адрес, который сервис скачивал
+// сам, — на машине разработчика это не работало вовсе, и фича из-за этого
+// долго стояла отложенной. Нынешняя схема frame_images принимает встроенный
+// base64, поэтому публичный домен для раздачи референсов больше не нужен.
 export async function generateVideoFile(prompt: string, referenceImagePath?: string): Promise<GeneratedVideoFile> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {

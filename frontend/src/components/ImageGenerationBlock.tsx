@@ -16,9 +16,8 @@ interface ImageGenerationBlockProps {
 // Единственный элемент управления на вкладке «Изображения»: один клик молча
 // пишет промпт и сразу вызывает реальную генерацию (generate_image) — клиент
 // не видит ни английского промпта, ни модели/цены, только готовую
-// иллюстрацию (решение сессии: технические детали генерации — не для
-// клиента, тот же принцип, что скрытый YAML-frontmatter в остальных
-// документах).
+// иллюстрацию: техническая кухня клиенту не нужна — тот же принцип, по
+// которому от него скрыт служебный заголовок документов.
 export function ImageGenerationBlock({ platform, onGeneratePrompt }: ImageGenerationBlockProps) {
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);

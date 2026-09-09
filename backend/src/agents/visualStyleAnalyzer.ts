@@ -8,14 +8,12 @@ import { chatCompletion, type ChatMessage, type ImageContentBlock, type TextCont
 import { parseFrontmatter, replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 
-// Claude Sonnet 5, не DeepSeek — референсы клиента (кабинет, "до/после" и
-// т.п.) не публичный контент, в отличие от постов, которые разбирают
-// текстовые агенты. Разовая операция на клиента, не на каждый пост — тот
-// же аргумент, по которому Claude выбран для audience/expertise-unpacker
-// (см. раздел 4 спецификации). Экспериментальная DeepSeek V4 Flash Vision
-// Exp потребовала бы включить в OpenRouter разрешение на обучение на
-// входных данных — неприемлемо для потенциально личных фото (см. CLAUDE.md,
-// "Известные грабли").
+// Здесь модель дороже, чем у текстовых агентов, и на то две причины.
+// Референсы клиента — снимки его кабинета, работ, «до и после» — не публичный
+// контент, в отличие от постов. А дешёвая экспериментальная альтернатива
+// требует разрешить провайдеру обучение на присланных данных, что для личных
+// фотографий неприемлемо. Операция разовая на клиента, не на каждый пост,
+// поэтому цена терпима.
 const MODEL = "anthropic/claude-sonnet-5";
 const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "visual-style-analyzer.md");
 const UPLOAD_ROOT = process.env.UPLOAD_DIR ?? path.join(process.cwd(), "..", "uploads");

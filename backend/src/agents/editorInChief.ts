@@ -14,10 +14,9 @@ import { chatCompletion } from "../lib/openrouter.js";
 import { parseFrontmatter } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 
-// DeepSeek V4 Pro — задача качественная (поймать то, что генератор мог
-// пропустить), не рутинная, тот же аргумент, что и в разделе 4 спецификации
-// для выбора модели на unpacker-агентах, только здесь дешевле Claude и
-// достаточно DeepSeek Pro (раздел 5 спецификации явно называет модель).
+// Задача качественная — поймать то, что автор пропустил, — поэтому модель
+// сильнее, чем у рутинных этапов, но не самая дорогая: проверки текста здесь
+// достаточно.
 const MODEL = "deepseek/deepseek-v4-pro";
 const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "editor-in-chief.md");
 
@@ -132,9 +131,8 @@ export async function runEditorInChief(clientId: string, contentType: ContentTyp
     { role: "user", content: userMessage },
   ]);
 
-  // Неразобранный вердикт трактуем как needs_revision, не ok — ложноположительный
-  // needs_revision стоит дешевле (одна лишняя перегенерация), чем незамеченное
-  // нарушение, показанное живому пользователю (см. prompts/editor-in-chief.md).
+  // Неразобранный вердикт трактуем как «нужна правка», а не «всё хорошо»:
+  // лишняя перегенерация стоит дёшево, а пропущенное нарушение увидит клиент.
   const frontmatter = parseFrontmatter(rawDocument) ?? {};
   const verdict: Verdict = VERDICTS.includes(frontmatter.вердикт as Verdict)
     ? (frontmatter.вердикт as Verdict)

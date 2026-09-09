@@ -20,8 +20,9 @@ const linkSchema = z.object({
   url: z.string().trim().url().max(500),
 });
 
-// Опросник — короткая форма-заменитель интервью, см. раздел 3 спецификации,
-// Шаг 1 ("2–3 вопроса-заменителя самых важных пунктов интервью").
+// Опросник заменяет получасовое интервью несколькими вопросами: спрашиваем
+// ровно то, без чего распаковка аудитории и экспертности выродится в общие
+// слова.
 const onboardingSchema = z.object({
   ownLinks: z.array(linkSchema).max(2),
   competitorLinks: z.array(linkSchema).min(2).max(3),
@@ -90,8 +91,8 @@ onboardingRouter.post("/onboarding", async (req, res) => {
     });
 
   // Только здесь ссылка на анкету и становится использованной — не при
-  // открытии страницы (решение сессии 2026-09-09, обоснование в
-  // routes/access.ts). Помечаем все ещё живые onboarding-ссылки клиента:
+  // открытии страницы (почему именно так — в routes/access.ts). Помечаем все
+  // ещё живые анкетные ссылки клиента:
   // сессия не помнит, каким токеном была получена, а их у одного клиента
   // больше одной только в нештатных случаях (оператор выдал повторную).
   //
@@ -147,8 +148,7 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
-// Drag-and-drop медиа-референс, один файл за запрос, с разбивкой по
-// категориям (см. раздел 3 спецификации, Шаг 1).
+// Медиа-референс, один файл за запрос, с разбивкой по категориям.
 onboardingRouter.post(
   "/onboarding/references/:category",
   (req, res, next) => {
@@ -168,9 +168,8 @@ onboardingRouter.post(
     const clientId = req.clientId!;
     const category = req.params.category as (typeof REFERENCE_CATEGORIES)[number];
     const id = generateId();
-    // Слэши нормализуются под URL — прод раздаёт этот путь статикой через
-    // nginx/Caddy на self-hosted Linux (см. раздел 7 спецификации), а
-    // path.relative на Windows-деве отдаёт бэкслэши.
+    // Слэши нормализуются под URL: на проде путь раздаётся статикой с Linux,
+    // а path.relative на Windows отдаёт обратные слэши, которые ломают адрес.
     const relativePath = path.relative(UPLOAD_ROOT, req.file.path).split(path.sep).join("/");
 
     await db.insert(referenceFiles).values({

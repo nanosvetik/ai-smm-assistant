@@ -47,9 +47,8 @@ export function exchangeAccessLink(token: string) {
   return request<{ status: "ok"; expiresAt: string }>(`/access/${token}`);
 }
 
-// Заявка с лендинга ("Получить демо-доступ") — только email, см. раздел 2
-// спецификации (решение сессии 2026-09-03). Ничего не выдаёт сразу, заявка
-// ждёт ручного подтверждения оператором.
+// Заявка с лендинга. Ничего не выдаёт сразу: доступ открывается только после
+// ручного подтверждения оператором.
 export function submitAccessRequest(data: { email: string; name?: string }) {
   return request<{ id: string; status: "pending" }>("/access-requests", {
     method: "POST",
@@ -135,9 +134,8 @@ export function runAgent(agentSlug: string, body?: Record<string, unknown>): Pro
   });
 }
 
-// Реальный вызов generate_image (раздел 3, Шаг 4 спецификации) — платная
-// операция за отдельной кнопкой «Сгенерировать», не часть обычного
-// AgentResult (нет статуса боевой/черновик, это медиа-артефакт, не документ).
+// Платная генерация картинки за отдельной кнопкой. Тип ответа отличается от
+// обычного документа агента: у файла нет статуса «боевой/черновик».
 export interface GeneratedImage {
   version: number;
   platform: Platform;
@@ -166,9 +164,8 @@ export async function getGeneratedImage(platform: Platform): Promise<GeneratedIm
   }
 }
 
-// Реальный вызов generate_video (раздел 3, Шаг 4 спецификации) — зеркало
-// GeneratedImage, без platform (Reels — один клип на клиента, как и сам
-// сценарий рилса).
+// Платная генерация клипа — зеркало картинки, но без площадки: рилс у клиента
+// один, как и его сценарий.
 export interface GeneratedVideo {
   version: number;
   videoPromptVersion: number;

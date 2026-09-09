@@ -23,10 +23,8 @@ export class PromptNotFoundError extends Error {
   }
 }
 
-// Реальный платный вызов generate_video (раздел 3, Шаг 4 спецификации —
-// видео-часть гейта подтверждения) поверх последнего промпта
-// reels-video-generator. Append-only по версиям, тем же принципом, что и
-// imageGenerator.ts.
+// Платная генерация клипа поверх последнего промпта для рилса. Как и с
+// картинками, запускается только явным нажатием и добавляется новой версией.
 export async function runVideoGenerator(clientId: string) {
   const [promptRow] = await db
     .select()

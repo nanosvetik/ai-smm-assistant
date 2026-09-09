@@ -2,33 +2,30 @@ import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 
 export const clients = sqliteTable("clients", {
   id: text("id").primaryKey(),
-  // Только email — решение сессии 2026-09-03: канал связи для заявки/доставки
-  // ссылок больше не выбирается (email есть у всех, плюс это же адрес для
-  // будущих предложений/опроса ОС). Не то же самое, что own-соцсети клиента
-  // на онбординге (social_links) — те остаются telegram/vk для контент-анализа.
-  // Тип сужен на уровне TS/zod, не SQL — SQLite не хранит CHECK на enum
-  // (см. drizzle/0000_safe_shocker.sql, обычный `text NOT NULL`), миграция
-  // не нужна. Колонка contactType оставлена (не удалена) — дешёвая, реально
-  // используемая (просто с одним допустимым значением), а не мёртвый код.
+  // Канал связи только один — почта: она есть у всех, и на неё же уходят
+  // ссылки на анкету и на результаты. Не путать с собственными соцсетями
+  // клиента (social_links) — те нужны для анализа контента, а не для связи.
+  // Перечисление ограничено в TypeScript и zod, а не в SQL: SQLite не хранит
+  // CHECK для enum, в таблице это обычный текст. Колонка с единственным
+  // значением оставлена сознательно — она дешёвая и позволит добавить второй
+  // канал без миграции.
   contactType: text("contact_type", { enum: ["email"] }).notNull(),
   contactValue: text("contact_value").notNull(),
-  // Скопировано из access_requests.name при одобрении заявки (см.
-  // approval.ts) — живёт с клиентом дольше самой заявки, нужно для
-  // персонализации будущих писем (например, автодоставки results-ссылки).
+  // Копируется из заявки при одобрении: клиент живёт дольше заявки, а имя
+  // нужно, чтобы письма были адресными.
   name: text("name"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Заявка с лендинга ("получить демо-доступ"). Ручное подтверждение на старте —
-// см. раздел 2 Project Specification v2.md.
+// Заявка с лендинга. Доступ выдаётся только после ручного подтверждения
+// оператором — автоматической регистрации в продукте нет.
 export const accessRequests = sqliteTable("access_requests", {
   id: text("id").primaryKey(),
-  // См. clients.contactType выше — тот же принцип и та же формулировка.
+  // Тот же принцип, что и в clients.contactType.
   contactType: text("contact_type", { enum: ["email"] }).notNull(),
   contactValue: text("contact_value").notNull(),
-  // Необязательное имя — минимальные лид-данные с лендинга (решение сессии
-  // 2026-09-03), не полные перс. данные. Nullable — форма ещё не собирает
-  // его сама (лендинг не реализован), заявки могут приходить и без него.
+  // Имя необязательно: с лендинга собирается минимум данных, заявка без
+  // имени тоже полноценна.
   name: text("name"),
   status: text("status", { enum: ["pending", "approved", "rejected"] })
     .notNull()
@@ -38,10 +35,10 @@ export const accessRequests = sqliteTable("access_requests", {
   reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
 });
 
-// Одноразовая ссылка (сгорает при отправке анкеты, не при открытии, и не
-// привязана к IP — см. routes/onboarding.ts) и
-// долгоживущая read-only ссылка на результаты — обе "magic link", различаются
-// полем kind. См. раздел 2 Project Specification v2.md.
+// Две ссылки-пропуска в одной таблице, различаются полем kind. Анкетная
+// сгорает при отправке формы (не при открытии) и не привязана к IP; ссылка на
+// результаты живёт долго и переживает любое число открытий — её пересылают
+// знакомым. Подробности — docs/security.md.
 export const accessLinks = sqliteTable("access_links", {
   token: text("token").primaryKey(),
   clientId: text("client_id")
@@ -63,7 +60,7 @@ export const sessions = sqliteTable("sessions", {
 });
 
 // Собственные соцсети клиента и ссылки на конкурентов — обе роли живут в одной
-// таблице, различаются полем role. См. раздел 3 спецификации, Шаг 1.
+// таблице, различаются полем role.
 export const socialLinks = sqliteTable("social_links", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -75,8 +72,8 @@ export const socialLinks = sqliteTable("social_links", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Опросник онбординга — короткая форма-заменитель интервью, один ответ на
-// клиента (пересдача формы перезаписывает). См. раздел 3 спецификации, Шаг 1.
+// Опросник онбординга — короткая форма вместо часового интервью, один ответ
+// на клиента: повторная отправка перезаписывает предыдущий.
 export const onboardingProfiles = sqliteTable("onboarding_profiles", {
   clientId: text("client_id")
     .primaryKey()
@@ -93,11 +90,11 @@ export const onboardingProfiles = sqliteTable("onboarding_profiles", {
   submittedAt: integer("submitted_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента audience-unpacker («Профиль ЦА»). Append-only по версиям —
-// повторный запуск не перезаписывает существующую запись молча (см. раздел 3
-// спецификации и автономный режим в prompts/target-audience.md). Статусные
-// поля дублируют YAML-frontmatter документа как отдельные колонки — нужны
-// для честных бейджей в UI (боевой/черновик-*), не только для чтения текста.
+// Результат агента audience-unpacker («Профиль ЦА»). Только добавление
+// версий: повторный запуск не затирает предыдущий документ молча. Статусные
+// поля дублируют YAML-frontmatter документа отдельными колонками — иначе
+// интерфейс не мог бы показать честный бейдж «боевой/черновик», не разбирая
+// текст на лету.
 export const audienceProfiles = sqliteTable("audience_profiles", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -113,10 +110,10 @@ export const audienceProfiles = sqliteTable("audience_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента expertise-unpacker («Распаковка экспертности»). Append-only
-// по версиям, тот же принцип, что и audience_profiles. Статусы здесь только
-// боевой/черновик-рамка (без черновик-скелет) — см. YAML-frontmatter в
-// prompts/expertise.md, Фаза 0 не имеет skeleton-ветки, только hard-stop.
+// Результат агента expertise-unpacker («Распаковка экспертности»), тот же
+// принцип версионирования. Статусов здесь два, а не три: у этого агента нет
+// ветки «скелет» — при нехватке данных он останавливается, а не выдаёт
+// заготовку (prompts/expertise.md).
 export const expertiseProfiles = sqliteTable("expertise_profiles", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -134,11 +131,9 @@ export const expertiseProfiles = sqliteTable("expertise_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента account-analyzer («Анализ своего аккаунта»). Append-only
-// по версиям, тот же принцип, что и audience_profiles/expertise_profiles.
-// Статусы только боевой/черновик-скелет — здесь нет промежуточного варианта
-// с публичными источниками (как у unpacker-агентов): вход всегда либо
-// реальные посты эксперта в достаточном количестве, либо их не хватает.
+// Результат агента account-analyzer («Анализ своего аккаунта»), то же
+// версионирование. Промежуточного статуса нет: либо постов эксперта хватило,
+// либо нет — гипотезы по нише, как у распаковщиков, здесь неоткуда взять.
 export const accountStyleProfiles = sqliteTable("account_style_profiles", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -152,14 +147,11 @@ export const accountStyleProfiles = sqliteTable("account_style_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента profile-header-analyzer («Аудит шапки профиля») — новый
-// агент сверх исходной таблицы раздела 4 (см. раздел 9 спецификации).
-// Фактологический разбор аватара/обложки/описания реального профиля клиента
-// (не постов) vision-моделью — используется account-packager для
-// заземлённого «Аудита профиля» вместо чисто умозрительных рекомендаций.
-// Append-only по версиям, статус — чисто механический: удалось ли получить
-// хотя бы один аватар, не качественная оценка модели (в отличие от
-// visual-style-analyzer).
+// Результат агента profile-header-analyzer («Аудит шапки профиля»): разбор
+// аватара, обложки и описания реального профиля — не постов. Нужен, чтобы
+// рекомендации по упаковке опирались на то, что у клиента действительно
+// стоит, а не на догадки. Статус здесь механический — удалось ли получить
+// хотя бы одно изображение, а не оценка качества моделью.
 export const profileHeaderProfiles = sqliteTable("profile_header_profiles", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -172,13 +164,9 @@ export const profileHeaderProfiles = sqliteTable("profile_header_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента visual-style-analyzer («Визуальный style-профиль») —
-// добавлен в этой сессии, не входил в исходную таблицу агентов раздела 4
-// спецификации (см. "Архитектурное решение этой сессии" в разделе 9).
-// Анализирует загруженные на онбординге drag-and-drop референсы (не посты)
-// vision-моделью, чтобы у visual-generator был устойчивый визуальный стиль
-// клиента, а не разрозненные генерации от раза к разу. Append-only по
-// версиям, статусы боевой/черновик-скелет тем же принципом, что и
+// Результат агента visual-style-analyzer («Визуальный style-профиль»):
+// анализ загруженных клиентом референсов, чтобы генерации не разъезжались по
+// стилю от раза к разу. Версионирование и статусы — как у
 // account_style_profiles.
 export const visualStyleProfiles = sqliteTable("visual_style_profiles", {
   id: text("id").primaryKey(),
@@ -193,10 +181,9 @@ export const visualStyleProfiles = sqliteTable("visual_style_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента competitor-analyzer («Анализ конкурентов»). Append-only по
-// версиям, тот же принцип, что и account_style_profiles. Статусы боевой
-// (2+ конкурента с пригодными для ранжирования постами) / черновик-скелет
-// (данных меньше чем у двух конкурентов) — см. prompts/competitor-analyzer.md.
+// Результат агента competitor-analyzer («Анализ конкурентов»). Боевой статус
+// требует хотя бы двух конкурентов с достаточным числом постов: по одному
+// сравнивать не с чем (prompts/competitor-analyzer.md).
 export const competitorAnalysisProfiles = sqliteTable("competitor_analysis_profiles", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -211,12 +198,11 @@ export const competitorAnalysisProfiles = sqliteTable("competitor_analysis_profi
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента account-packager («Упаковка профиля»). Append-only по
-// версиям. Статус наследуется от самого слабого из трёх входных документов
-// (аудитория/экспертность/стиль), не выбирается моделью самостоятельно — см.
-// buildStatus в backend/src/agents/accountPackager.ts. Версии входов
-// зафиксированы для трассировки: если позже кто-то из unpacker'ов
-// перезапустится, видно, на каких именно версиях строилась эта упаковка.
+// Результат агента account-packager («Упаковка профиля»). Статус берётся от
+// самого слабого из трёх входов (аудитория, экспертность, стиль), а не
+// назначается моделью: документ не может быть надёжнее того, из чего собран
+// (buildStatus в agents/accountPackager.ts). Версии входов записаны, чтобы
+// после перезапуска любого из них было видно, на чём строилась упаковка.
 export const packagingProfiles = sqliteTable("packaging_profiles", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -234,14 +220,11 @@ export const packagingProfiles = sqliteTable("packaging_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента content-planner («Контент-план на 2 недели»). Append-only
-// по версиям. Статус наследуется от самого слабого из двух входов (упаковка
-// профиля / анализ конкурентов), тем же принципом, что и packaging_profiles.
-// Версии обоих входов зафиксированы для трассировки. platforms — ровно те
-// площадки, что реально есть у клиента (own-ссылки на онбординге), не
-// обязательно обе: план и демо строятся только под них, см. Шаг 2/3 в
-// prompts/content-planner.md. Проверяется дальше в copywriter.ts, чтобы
-// нельзя было сгенерировать пост для площадки, которой у клиента нет.
+// Результат агента content-planner («Контент-план на 2 недели»). Статус — от
+// самого слабого входа, тем же принципом, что и у упаковки профиля.
+// В platforms попадают ровно те площадки, что клиент указал своими, — не
+// обязательно обе: план строится только под них, и copywriter потом
+// отказывается писать пост для площадки, которой у клиента нет.
 export const contentPlans = sqliteTable("content_plans", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -253,21 +236,18 @@ export const contentPlans = sqliteTable("content_plans", {
   packagingProfileVersion: integer("packaging_profile_version").notNull(),
   competitorAnalysisProfileVersion: integer("competitor_analysis_profile_version").notNull(),
   documentMarkdown: text("document_markdown").notNull(),
-  // Структурированная JSON-версия плана (posts/reels), см. lib/planData.ts —
-  // распарсена из ```json-блока, который выдаёт модель рядом с frontmatter
-  // (prompts/content-planner.md). null, если модель не выдала валидный блок —
-  // кабинет тогда честно откатывается на прежний рендер documentMarkdown
-  // целиком, без сетки/выгрузки, а не подставляет пустую сетку молча.
+  // Структурированная версия плана, разобранная из json-блока, который модель
+  // выдаёт рядом с документом (lib/planData.ts). Пусто, если блок не удалось
+  // разобрать: кабинет тогда показывает документ целиком, без сетки и
+  // выгрузки, — это честнее пустой таблицы.
   planItems: text("plan_items"),
   reelsIdeas: text("reels_ideas"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента copywriter — готовый текст одного демо-поста. Append-only
-// по версиям, но версия считается отдельно на каждую площадку (telegram/vk
-// пишутся и перегенерируются независимо друг от друга) — см.
-// backend/src/agents/copywriter.ts. Статус наследуется от самого слабого из
-// двух входов (контент-план / упаковка профиля), тем же принципом.
+// Результат агента copywriter — готовый текст одного демо-поста. Версия
+// считается отдельно на каждую площадку: посты для Telegram и ВК пишутся
+// независимо. Статус — от самого слабого входа, как и везде выше.
 export const copywriterPosts = sqliteTable("copywriter_posts", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -283,16 +263,11 @@ export const copywriterPosts = sqliteTable("copywriter_posts", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента visual-generator — промпт для generate_image (сам вызов
-// generate_image, дорогая операция, происходит отдельно и только по
-// подтверждению пользователя — не здесь, см. раздел 3 Шаг 4 спецификации).
-// Append-only по версиям, версия считается отдельно на каждую площадку, тем
-// же принципом, что и copywriter_posts. Источник визуального стиля — раздел
-// «Визуальный стиль» в packaging_profiles (решение сессии 2026-09-02,
-// полностью заменило прежний источник от visual-style-analyzer/референсов —
-// см. CLAUDE.md); packagingProfileVersion обязателен, а не nullable, потому
-// что упаковка профиля — жёсткая предпосылка для этого агента (как и для
-// copywriter), не опциональный вход.
+// Результат агента visual-generator — текстовый промпт для картинки. Сама
+// генерация стоит денег и делается отдельно, только по явному нажатию
+// клиента. Версия считается на каждую площадку, как и у постов. Визуальный
+// стиль берётся из соответствующего раздела упаковки профиля, поэтому её
+// версия обязательна: без упаковки этому агенту не на что опереться.
 export const visualGeneratorPrompts = sqliteTable("visual_generator_prompts", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -307,14 +282,11 @@ export const visualGeneratorPrompts = sqliteTable("visual_generator_prompts", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Реальный вызов generate_image (раздел 3, Шаг 4 — гейт подтверждения перед
-// медиа-генерацией, решение сессии 2026-09-01) поверх промпта из
-// visual_generator_prompts. Append-only по версиям, версия — на пару
-// (client, platform), тем же принципом, что и visual_generator_prompts. Нет
-// колонки status — это не текстовый документ с оценкой боевой/черновик,
-// просто медиа-артефакт. visualPromptVersion — трассировка, каким именно
-// промптом сгенерирована эта картинка (если промпт перегенерировали — старая
-// картинка не подсовывается под новый промпт, см. ImageGenerationBlock.tsx).
+// Сгенерированная картинка — результат платного вызова поверх промпта из
+// visual_generator_prompts. Колонки статуса нет: это файл, а не документ,
+// оценивать его как «боевой/черновик» бессмысленно. Версия промпта
+// сохраняется, чтобы после его перегенерации интерфейс не показывал старую
+// картинку рядом с новым промптом.
 export const generatedImages = sqliteTable("generated_images", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -330,14 +302,11 @@ export const generatedImages = sqliteTable("generated_images", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента reels-writer — сценарий одного демо-рилса. Append-only по
-// версиям, без разделения по площадкам (Reels в этом продукте существуют
-// только для ВК, см. content-planner) — в отличие от copywriter_posts/
-// visual_generator_prompts, где версия считается на каждую площадку отдельно.
-// usedReferences/referenceCategories — не то, что реально загружено клиентом
-// (это reference_files), а то, что модель реально использовала в выбранной
-// идее (см. Шаг 1 prompts/reels-writer.md) — оба могут разойтись, если
-// референсы есть, но ни один не подошёл ни одной идее плана.
+// Результат агента reels-writer — сценарий одного демо-рилса. Без разделения
+// по площадкам: Reels в этом продукте существуют только для ВК.
+// usedReferences и referenceCategories описывают не то, что клиент загрузил
+// (это reference_files), а то, что модель действительно использовала в
+// выбранной идее: референсы могут быть, но не подойти ни одной из них.
 export const reelsScripts = sqliteTable("reels_scripts", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -353,11 +322,10 @@ export const reelsScripts = sqliteTable("reels_scripts", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента reels-video-generator — промпт для generate_video,
-// визуализирующий только хук сценария (raздел 3, Шаг 4 — видео-часть гейта
-// подтверждения, решение сессии 2026-09-01, зеркало visual_generator_prompts
-// без колонки platform: Reels — один сценарий на клиента, как и reels_scripts).
-// usedVisualProfile — false, если Визуального style-профиля не было на входе.
+// Результат агента reels-video-generator — промпт для видео, показывающего
+// только хук сценария, а не весь ролик. Зеркало visual_generator_prompts, но
+// без площадки: рилс у клиента один. usedVisualProfile отмечает, был ли на
+// входе визуальный стиль, — без него промпт получается заметно общее.
 export const reelsVideoPrompts = sqliteTable("reels_video_prompts", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -372,13 +340,9 @@ export const reelsVideoPrompts = sqliteTable("reels_video_prompts", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Реальный вызов generate_video (raздел 3, Шаг 4 — видео-часть гейта
-// подтверждения) поверх промпта из reels_video_prompts. Зеркало
-// generated_images без platform (Reels — один клип на клиента).
-// referenceFileId — какой файл из reels_reference_files (если был) отправлен
-// моделью как first_frame (см. videoGeneration.ts, решение сессии 2026-09-04:
-// OpenRouter принимает data:-URI в frame_images, старое ограничение
-// "только публичный URL" было верно для прежней плоской схемы параметров).
+// Сгенерированный клип поверх промпта из reels_video_prompts. Зеркало
+// generated_images, без площадки — клип у клиента один. referenceFileId
+// показывает, какой из загруженных клиентом файлов пошёл первым кадром.
 export const generatedVideos = sqliteTable("generated_videos", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -394,14 +358,11 @@ export const generatedVideos = sqliteTable("generated_videos", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента editor-in-chief («Редакторская проверка») — вердикт
-// ok/needs_revision над конкретной версией copywriter_posts или
-// reels_scripts (contentType + reviewedContentVersion). Append-only, версия
-// считается отдельно на пару (contentType, platform) — тот же принцип, что и
-// copywriter_posts. Не хранит нарушения отдельной структурированной колонкой:
-// агент сам не переписывает текст (см. раздел 5 спецификации), а фидбек для
-// автоматической перегенерации — это documentMarkdown целиком, не разобранный
-// на поля список (см. backend/src/agents/reviewedContent.ts).
+// Результат агента editor-in-chief («Редакторская проверка») — вердикт над
+// конкретной версией поста или сценария. Нарушения не разложены по колонкам
+// намеренно: редактор не переписывает текст сам, а его замечания уходят
+// автору целиком, как связный отзыв (agents/reviewedContent.ts). Разбор на
+// поля здесь ничего бы не дал, кроме потери смысла.
 export const editorialReviews = sqliteTable("editorial_reviews", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -416,9 +377,9 @@ export const editorialReviews = sqliteTable("editorial_reviews", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Drag-and-drop медиа-референсы с онбординга (не сгенерированное демо-медиа —
-// то хранится отдельно, см. /workspace в CLAUDE.md). Файлы на диске, здесь
-// только путь. См. раздел 3 (категории) и раздел 7 (хранение) спецификации.
+// Медиа-референсы, загруженные на онбординге. Сами файлы лежат на диске,
+// в таблице только путь. Не путать со сгенерированным демо-медиа — оно
+// хранится отдельно.
 export const referenceFiles = sqliteTable("reference_files", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -432,11 +393,10 @@ export const referenceFiles = sqliteTable("reference_files", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Референсы, добавляемые клиентом на странице рилса, уже после того, как
-// сценарий готов — не онбординговые reference_files (те собирались до
-// сценария, без понимания, к чему они относятся). Одна зона загрузки, без
-// категорий. Пока только хранение — без вызова visual-style-analyzer и без
-// передачи в generate_video (reference_image/first_frame_url), см. CLAUDE.md.
+// Референсы, которые клиент добавляет на странице рилса, когда сценарий уже
+// написан. Отдельно от онбординговых reference_files: те собирались вслепую,
+// до сценария, и клиент не понимал, подо что их подбирать. Категорий здесь
+// нет — одна зона загрузки.
 export const reelsReferenceFiles = sqliteTable("reels_reference_files", {
   id: text("id").primaryKey(),
   clientId: text("client_id")

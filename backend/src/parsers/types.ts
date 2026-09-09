@@ -1,6 +1,7 @@
 // views — доступны на обеих площадках; likes/reposts — только VK (публичное
 // превью Telegram их не показывает). Нужны для ранжирования по вовлечённости
-// в competitor-analyzer (раздел 3 спецификации, Шаг 3).
+// в competitor-analyzer: посты конкурентов ранжируются по отклику аудитории,
+// а не по дате.
 export interface PostEngagement {
   views?: number;
   likes?: number;

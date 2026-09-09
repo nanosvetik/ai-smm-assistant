@@ -140,10 +140,9 @@ agentsRouter.get("/agents/competitor-analyzer", async (req, res) => {
 // Запуск account-analyzer — реальный платный вызов OpenRouter (DeepSeek V4
 // Flash) поверх постов, собранных парсером (backend/src/parsers). Каждый
 // запрос — новая версия Анализа своего аккаунта, старые не перезаписываются.
-// Решение сессии: заодно всегда дёргаем profile-header-analyzer (Claude
-// Sonnet vision, own-ссылки — тот же вход, ничего дополнительного не нужно) —
-// у него нет своей кнопки в сайдбаре (см. открытые вопросы в CLAUDE.md), а
-// без этого он никогда не запускался бы в реальном дашборде. Параллельно
+// Заодно всегда запускается profile-header-analyzer: у него тот же вход —
+// ссылки на свои площадки, — но нет своей кнопки в интерфейсе, и без этой
+// связки он не запускался бы вовсе. Параллельно
 // через Promise.all, его ошибка не должна ронять ответ account-analyzer —
 // это опциональный вход для account-packager, не обязательный этап.
 agentsRouter.post("/agents/account-analyzer", async (req, res) => {
@@ -181,11 +180,9 @@ agentsRouter.get("/agents/account-analyzer", async (req, res) => {
   res.json(profile);
 });
 
-// Запуск profile-header-analyzer — реальный платный вызов OpenRouter (Claude
-// Sonnet 5, vision) поверх аватара/обложки/описания own-площадок клиента.
-// Новый агент сверх исходной таблицы, независим от остальных (нужны только
-// own-ссылки с онбординга) — опциональный вход для account-packager,
-// см. раздел 9 спецификации.
+// Разбор аватара, обложки и описания площадок клиента. Не зависит от других
+// этапов — нужны только ссылки с анкеты — и служит необязательным входом для
+// упаковки профиля: без него рекомендации по оформлению будут умозрительными.
 agentsRouter.post("/agents/profile-header-analyzer", async (req, res) => {
   try {
     const profile = await runProfileHeaderAnalyzer(req.clientId!);
@@ -292,11 +289,10 @@ const copywriterRequestSchema = z.object({
 // Запуск copywriter — реальный платный вызов OpenRouter (DeepSeek V4 Flash)
 // поверх Контент-плана и Упаковки профиля, для одной площадки и дня из
 // плана. Каждая площадка версионируется отдельно (см. схему copywriter_posts).
-// Идёт через runReviewedCopywriter (см. reviewedContent.ts), не голый
-// runCopywriter — раньше эта ручка (единственный путь генерации поста из
-// кабинета, run-all к UI не подключён) вообще не проходила через
-// editor-in-chief, хотя автопроверка табу/стоп-слов/нейрослопа — часть
-// ключевого УТП продукта, не опциональная деталь (см. раздел 5 спецификации).
+// Пост генерируется через оркестратор с редакторской проверкой, а не напрямую:
+// это единственный путь генерации из кабинета, и раньше он проходил мимо
+// редактора. Автопроверка на табу, стоп-слова и «нейрослоп» — суть продукта,
+// а не необязательная добавка, пропускать её здесь нельзя.
 agentsRouter.post("/agents/copywriter", async (req, res) => {
   const parsed = copywriterRequestSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -360,12 +356,10 @@ agentsRouter.get("/agents/copywriter", async (req, res) => {
   res.json(post);
 });
 
-// Запуск visual-style-analyzer — реальный платный вызов OpenRouter (Claude
-// Sonnet 5 — vision-задача над потенциально личными фото клиента, не
-// публичным контентом) поверх drag-and-drop референсов клиента. Разовый
-// анализ визуальной айдентики, не входил в исходную таблицу агентов (см.
-// раздел 9 спецификации) — добавлен вместе с планированием visual-generator,
-// чтобы генерации держали единый стиль от раза к разу.
+// Разовый разбор визуальной айдентики по референсам клиента — чтобы
+// сгенерированные картинки держали единый стиль, а не расходились от раза к
+// разу. Модель здесь дороже осознанно: на вход идут личные фотографии
+// (agents/visualStyleAnalyzer.ts).
 agentsRouter.post("/agents/visual-style-analyzer", async (req, res) => {
   try {
     const profile = await runVisualStyleAnalyzer(req.clientId!);
@@ -398,12 +392,9 @@ agentsRouter.get("/agents/visual-style-analyzer", async (req, res) => {
 
 const visualGeneratorRequestSchema = z.object({ platform: z.enum(["telegram", "vk"]) });
 
-// Запуск visual-generator — реальный платный вызов OpenRouter (DeepSeek V4
-// Flash: вход тут уже текст, а не картинки, vision не нужен) поверх
-// последнего поста copywriter для площадки + Визуального style-профиля
-// (если есть). Пишет только промпт для generate_image — сам дорогой вызов
-// generate_image происходит отдельно, по подтверждению пользователя (см.
-// раздел 3 Шаг 4 спецификации, гейт ещё не реализован).
+// Составление промпта для картинки по последнему посту площадки. Модель здесь
+// простая: на входе уже текст, а не изображения. Пишется только промпт —
+// сама генерация платная и живёт за отдельной кнопкой.
 agentsRouter.post("/agents/visual-generator", async (req, res) => {
   const parsed = visualGeneratorRequestSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -450,9 +441,8 @@ agentsRouter.get("/agents/visual-generator", async (req, res) => {
 
 const generateImageRequestSchema = z.object({ platform: z.enum(["telegram", "vk"]) });
 
-// Запуск реального вызова generate_image (раздел 3, Шаг 4 спецификации —
-// гейт подтверждения перед медиа-генерацией) поверх последнего промпта
-// visual-generator для площадки. Отдельная ручка, не встроена в
+// Платная генерация картинки поверх последнего промпта для площадки.
+// Отдельная ручка, не встроена в
 // /agents/visual-generator — текст промпта дешёвый и генерируется сразу без
 // подтверждения, реальный вызов картиночной модели — дорогая операция за
 // явным кликом «Сгенерировать» (см. ImageGenerationBlock.tsx на фронтенде).
@@ -583,9 +573,8 @@ agentsRouter.get("/agents/reels-video-generator", async (req, res) => {
   res.json(prompt);
 });
 
-// Запуск реального вызова generate_video (раздел 3, Шаг 4 спецификации —
-// видео-часть гейта подтверждения) поверх последнего промпта
-// reels-video-generator. Отдельная ручка, не встроена в
+// Платная генерация клипа поверх последнего промпта для рилса.
+// Отдельная ручка, не встроена в
 // /agents/reels-video-generator — тот же принцип, что и с картинками:
 // текст промпта дешёвый и генерируется сразу, реальный вызов видео-модели —
 // дорогая операция за явным кликом «Сгенерировать» (см. VideoGenerationBlock.tsx).
@@ -628,12 +617,10 @@ const editorInChiefRequestSchema = z.object({
   platform: z.enum(["telegram", "vk"]),
 });
 
-// Запуск editor-in-chief — реальный платный вызов OpenRouter (DeepSeek V4
-// Pro) поверх последней версии поста/сценария указанной площадки + табу
-// (expertise-unpacker) + стоп-слова/tone (audience-unpacker) + tone/
-// позиционирование (account-packager). Только вердикт, текст не переписывает
-// (раздел 5 спецификации) — автоматическая перегенерация по фидбеку живёт в
-// backend/src/agents/reviewedContent.ts, не в этой ручке.
+// Редакторская проверка последней версии поста или сценария: на вход идут
+// табу клиента, его стоп-слова и позиционирование из упаковки профиля. Ручка
+// отдаёт только вердикт и не переписывает текст — автоматическая
+// перегенерация по замечаниям живёт в agents/reviewedContent.ts.
 agentsRouter.post("/agents/editor-in-chief", async (req, res) => {
   const parsed = editorInChiefRequestSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -687,8 +674,7 @@ agentsRouter.get("/agents/editor-in-chief", async (req, res) => {
   res.json(review);
 });
 
-// Запускает весь текстовый пайплайн разом (кнопка «Запустить анализ» на
-// онбординге, раздел 6 спецификации) — независимые агенты параллельно,
+// Запускает весь текстовый конвейер разом — независимые агенты параллельно,
 // дальше по зависимостям, до готовых промптов для картинок включительно.
 // Каждый этап пишет свой результат в БД сам по себе (как и при отдельном
 // вызове), эта ручка не хранит собственного состояния — можно звать
