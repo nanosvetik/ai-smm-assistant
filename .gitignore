@@ -48,4 +48,4 @@ Thumbs.db
 *.stackdump
 
 # Claude Code local settings (machine-specific, not shared)
-.claude/settings.local.json
+.claude/
