@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { proxiedFetch } from "../lib/outboundProxy.js";
 import type { ParsedPost, ProfileHeader } from "./types.js";
 
 // Публичное веб-превью, не Bot API — свой канал разбираем так же, как чужой
@@ -24,7 +25,7 @@ function parseViewCount(raw: string): number | undefined {
 
 export async function fetchTelegramPosts(channelUrl: string, limit = 20): Promise<ParsedPost[]> {
   const channel = extractChannel(channelUrl);
-  const res = await fetch(`https://t.me/s/${channel}`);
+  const res = await proxiedFetch(`https://t.me/s/${channel}`);
   if (!res.ok) {
     throw new Error(`Telegram preview request failed (${res.status}) for channel "${channel}"`);
   }
@@ -59,7 +60,7 @@ export async function fetchTelegramPosts(channelUrl: string, limit = 20): Promis
 // prompts/... и обоснование в разделе 3 спецификации).
 export async function fetchTelegramProfileHeader(channelUrl: string): Promise<ProfileHeader> {
   const channel = extractChannel(channelUrl);
-  const res = await fetch(`https://t.me/s/${channel}`);
+  const res = await proxiedFetch(`https://t.me/s/${channel}`);
   if (!res.ok) {
     throw new Error(`Telegram preview request failed (${res.status}) for channel "${channel}"`);
   }

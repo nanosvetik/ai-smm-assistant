@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { proxiedFetch } from "./outboundProxy.js";
 
 const IMAGES_URL = "https://openrouter.ai/api/v1/images";
 
@@ -52,7 +53,7 @@ export async function generateImageFile(prompt: string): Promise<GeneratedImageF
   let lastError = "";
 
   for (const model of attempts) {
-    const res = await fetch(IMAGES_URL, {
+    const res = await proxiedFetch(IMAGES_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

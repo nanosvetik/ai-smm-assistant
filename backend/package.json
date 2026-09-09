@@ -23,6 +23,7 @@
     "express": "^4.21.0",
     "js-yaml": "^5.4.1",
     "multer": "^2.3.0",
+    "undici": "^6.21.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

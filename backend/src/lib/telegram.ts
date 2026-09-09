@@ -1,3 +1,5 @@
+import { proxiedFetch } from "./outboundProxy.js";
+
 const API_BASE = "https://api.telegram.org";
 
 function botToken(): string | undefined {
@@ -12,7 +14,7 @@ async function callTelegram<T>(method: string, body: Record<string, unknown>): P
   const token = botToken();
   if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not set");
 
-  const res = await fetch(`${API_BASE}/bot${token}/${method}`, {
+  const res = await proxiedFetch(`${API_BASE}/bot${token}/${method}`, {
     method: "POST",
     headers: { "Content-Type": "application/json; charset=utf-8" },
     body: JSON.stringify(body),

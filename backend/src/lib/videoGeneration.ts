@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { proxiedFetch } from "./outboundProxy.js";
 
 const VIDEOS_URL = "https://openrouter.ai/api/v1/videos";
 
@@ -95,7 +96,7 @@ export async function generateVideoFile(prompt: string, referenceImagePath?: str
       ]
     : undefined;
 
-  const createRes = await fetch(VIDEOS_URL, {
+  const createRes = await proxiedFetch(VIDEOS_URL, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -123,7 +124,10 @@ export async function generateVideoFile(prompt: string, referenceImagePath?: str
     if (!job.polling_url) {
       throw new Error(`generateVideoFile: no polling_url in job: ${JSON.stringify(job)}`);
     }
-    const pollRes = await fetch(job.polling_url, { method: "GET", headers });
+    // polling_url и ссылка на готовый файл приходят внутри ответа и ведут на
+    // openrouter.ai и его хранилище — им нужен тот же заграничный выход, что и
+    // первому запросу, иначе генерация встанет на втором шаге.
+    const pollRes = await proxiedFetch(job.polling_url, { method: "GET", headers });
     if (!pollRes.ok) {
       throw new Error(`generateVideoFile: polling failed (HTTP ${pollRes.status}): ${await pollRes.text()}`);
     }
@@ -141,7 +145,7 @@ export async function generateVideoFile(prompt: string, referenceImagePath?: str
     throw new Error(`generateVideoFile: no unsigned_urls in completed job: ${JSON.stringify(job)}`);
   }
 
-  const contentRes = await fetch(contentUrl, { method: "GET", headers });
+  const contentRes = await proxiedFetch(contentUrl, { method: "GET", headers });
   if (!contentRes.ok) {
     throw new Error(`generateVideoFile: content download failed (HTTP ${contentRes.status})`);
   }

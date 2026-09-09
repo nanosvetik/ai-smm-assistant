@@ -1,3 +1,5 @@
+import { proxiedFetch } from "./outboundProxy.js";
+
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // content как массив блоков — для мультимодальных сообщений (vision), см.
@@ -24,7 +26,7 @@ export async function chatCompletion(model: string, messages: ChatMessage[]): Pr
     throw new Error("OPENROUTER_API_KEY is not set");
   }
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await proxiedFetch(OPENROUTER_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
