@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { competitorAnalysisProfiles, socialLinks } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { parseFrontmatter, stampFrontmatterDates } from "../lib/frontmatter.js";
+import { parseFrontmatter, replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { fetchPosts, type ParsedPost } from "../parsers/index.js";
 import { promptPath } from "../lib/paths.js";
@@ -113,7 +113,16 @@ export async function runCompetitorAnalyzer(clientId: string) {
     competitorsAnalyzed: competitors.length,
     postsAnalyzed: totalPosts,
     platforms: JSON.stringify(platformsWithPosts),
-    documentMarkdown: stampFrontmatterDates(document),
+    // Счётчики берутся из кода, а не из документа: в живом прогоне модель
+    // написала «2 конкурента, 14 постов» там, где разобраны были 3 и 15.
+    // Сами конкуренты при этом в тексте разобраны все — ошибалась только шапка.
+    documentMarkdown: [
+      ["конкурентов_проанализировано", String(competitors.length)],
+      ["постов_проанализировано", String(totalPosts)],
+    ].reduce(
+      (doc, [field, value]) => replaceFrontmatterField(doc, field, value),
+      stampFrontmatterDates(document)
+    ),
     createdAt: now,
   });
 
