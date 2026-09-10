@@ -67,6 +67,21 @@ export function parseFrontmatter(document: string): Record<string, unknown> | nu
   return fallback;
 }
 
+// Даты в документе проставляет код, а не модель. Модель их выдумывает: в живом
+// прогоне документ, сделанный в сентябре 2026-го, получил "создан: 2025-05-30".
+// Для документа, который клиент сохраняет и потом подгружает в нейросеть, дата —
+// единственный признак свежести, и выдуманная делает её бесполезной.
+// Дата берётся локальная, а не из toISOString(): UTC под вечер по Москве
+// показывает вчерашний день.
+export function stampFrontmatterDates(document: string, now = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return ["создан", "обновлён"].reduce(
+    (doc, field) => replaceFrontmatterField(doc, field, today),
+    document
+  );
+}
+
 // Используется агентами, которые сами вычисляют статус (не доверяя
 // самооценке модели, см. accountPackager.ts/contentPlanner.ts) и переписывают
 // им сохранённый документ, чтобы текст не расходился с колонкой в БД.

@@ -5,7 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { referenceFiles, visualStyleProfiles } from "../db/schema.js";
 import { chatCompletion, type ChatMessage, type ImageContentBlock, type TextContentBlock } from "../lib/openrouter.js";
-import { parseFrontmatter, replaceFrontmatterField } from "../lib/frontmatter.js";
+import { parseFrontmatter, replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { promptPath, UPLOAD_ROOT } from "../lib/paths.js";
 
@@ -123,7 +123,7 @@ export async function runVisualStyleAnalyzer(clientId: string) {
     status,
     referencesAnalyzed: selected.length,
     categories: JSON.stringify(categories),
-    documentMarkdown: document,
+    documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
 

@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accountStyleProfiles, socialLinks } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { parseFrontmatter } from "../lib/frontmatter.js";
+import { parseFrontmatter, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { fetchPosts, type ParsedPost } from "../parsers/index.js";
 import { buildPostsContext } from "../lib/postsContext.js";
@@ -71,7 +71,7 @@ export async function runAccountAnalyzer(clientId: string) {
     status,
     postsAnalyzed: totalPosts,
     platforms: JSON.stringify(platformsWithPosts),
-    documentMarkdown: document,
+    documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseFrontmatter, replaceFrontmatterField } from "./frontmatter.js";
+import { parseFrontmatter, replaceFrontmatterField, stampFrontmatterDates } from "./frontmatter.js";
 
 // Все случаи ниже — не выдуманные, а те, на которых парсер уже ломался
 // живьём: модели по-разному оформляют один и тот же документ.
@@ -64,5 +64,42 @@ describe("replaceFrontmatterField", () => {
   it("оставляет документ как есть, если поля нет", () => {
     const doc = ["---", "b2b: false", "---", "", "текст"].join("\n");
     expect(replaceFrontmatterField(doc, "статус", "боевой")).toBe(doc);
+  });
+});
+
+describe("stampFrontmatterDates", () => {
+  it("заменяет выдуманные моделью даты на настоящую", () => {
+    // Живой случай: документ, сделанный 10 сентября 2026-го, пришёл от модели
+    // с датой "2025-05-30". Клиент по этой дате судит о свежести документа.
+    const doc = [
+      "---",
+      "тип: профиль-ца",
+      "статус: боевой",
+      "создан: 2025-05-30",
+      "обновлён: 2025-05-30",
+      "---",
+      "",
+      "# Профиль ЦА",
+    ].join("\n");
+
+    const stamped = stampFrontmatterDates(doc, new Date(2026, 8, 10));
+
+    expect(parseFrontmatter(stamped)).toMatchObject({ создан: "2026-09-10", обновлён: "2026-09-10" });
+    expect(stamped).toContain("# Профиль ЦА");
+  });
+
+  it("берёт местную дату, а не UTC", () => {
+    // Вечер по Москве — в UTC ещё предыдущий день. toISOString() поставил бы
+    // документу вчерашнее число.
+    const stamped = stampFrontmatterDates(
+      ["---", "создан: —", "---"].join("\n"),
+      new Date(2026, 8, 10, 23, 30)
+    );
+    expect(parseFrontmatter(stamped)).toMatchObject({ создан: "2026-09-10" });
+  });
+
+  it("не трогает документ без полей с датами", () => {
+    const doc = ["---", "тип: пост", "---", "", "текст"].join("\n");
+    expect(stampFrontmatterDates(doc, new Date(2026, 8, 10))).toBe(doc);
   });
 });

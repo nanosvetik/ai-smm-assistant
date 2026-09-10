@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accountStyleProfiles, audienceProfiles, expertiseProfiles, packagingProfiles, profileHeaderProfiles } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { replaceFrontmatterField } from "../lib/frontmatter.js";
+import { replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { promptPath } from "../lib/paths.js";
 
@@ -121,7 +121,7 @@ export async function runAccountPackager(clientId: string) {
     expertiseProfileVersion: expertise.version,
     accountStyleProfileVersion: accountStyle.version,
     profileHeaderProfileVersion: profileHeader?.version ?? null,
-    documentMarkdown: document,
+    documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
 

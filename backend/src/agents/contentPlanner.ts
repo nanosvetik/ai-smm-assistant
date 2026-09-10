@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { competitorAnalysisProfiles, contentPlans, packagingProfiles, socialLinks } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { replaceFrontmatterField } from "../lib/frontmatter.js";
+import { replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { parsePlanData } from "../lib/planData.js";
 import { generateId } from "../lib/tokens.js";
 import { promptPath } from "../lib/paths.js";
@@ -108,7 +108,7 @@ export async function runContentPlanner(clientId: string) {
     platforms: JSON.stringify(platforms),
     packagingProfileVersion: packaging.version,
     competitorAnalysisProfileVersion: competitorAnalysis.version,
-    documentMarkdown: document,
+    documentMarkdown: stampFrontmatterDates(document),
     planItems: planData ? JSON.stringify(planData.posts) : null,
     reelsIdeas: planData ? JSON.stringify(planData.reels) : null,
     createdAt: now,

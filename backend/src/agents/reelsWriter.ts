@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { contentPlans, packagingProfiles, referenceFiles, reelsScripts } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { parseFrontmatter, replaceFrontmatterField } from "../lib/frontmatter.js";
+import { parseFrontmatter, replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { promptPath } from "../lib/paths.js";
 
@@ -137,7 +137,7 @@ export async function runReelsWriter(clientId: string, editorFeedback?: string) 
     referenceCategories: JSON.stringify(usedCategories),
     contentPlanVersion: contentPlan.version,
     packagingProfileVersion: packaging.version,
-    documentMarkdown: document,
+    documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
 

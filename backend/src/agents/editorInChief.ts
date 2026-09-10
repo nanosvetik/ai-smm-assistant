@@ -10,7 +10,7 @@ import {
   reelsScripts,
 } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { parseFrontmatter } from "../lib/frontmatter.js";
+import { parseFrontmatter, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { promptPath } from "../lib/paths.js";
 
@@ -162,7 +162,7 @@ export async function runEditorInChief(clientId: string, contentType: ContentTyp
     version: nextVersion,
     reviewedContentVersion: contentVersion,
     verdict,
-    documentMarkdown: rawDocument,
+    documentMarkdown: stampFrontmatterDates(rawDocument),
     createdAt: now,
   });
 

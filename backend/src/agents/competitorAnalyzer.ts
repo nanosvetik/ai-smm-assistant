@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { competitorAnalysisProfiles, socialLinks } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { parseFrontmatter } from "../lib/frontmatter.js";
+import { parseFrontmatter, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { fetchPosts, type ParsedPost } from "../parsers/index.js";
 import { promptPath } from "../lib/paths.js";
@@ -113,7 +113,7 @@ export async function runCompetitorAnalyzer(clientId: string) {
     competitorsAnalyzed: competitors.length,
     postsAnalyzed: totalPosts,
     platforms: JSON.stringify(platformsWithPosts),
-    documentMarkdown: document,
+    documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
 

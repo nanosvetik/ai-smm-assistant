@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { reelsReferenceFiles, reelsScripts, reelsVideoPrompts } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { replaceFrontmatterField } from "../lib/frontmatter.js";
+import { replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { ensureVisualStyleProfile } from "./visualStyleAnalyzer.js";
 import { generateId } from "../lib/tokens.js";
 import { promptPath } from "../lib/paths.js";
@@ -105,7 +105,7 @@ export async function runReelsVideoGenerator(clientId: string) {
     usedVisualProfile: Boolean(visualProfile),
     reelsScriptVersion: script.version,
     visualStyleProfileVersion: visualProfile?.version ?? null,
-    documentMarkdown: document,
+    documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
 

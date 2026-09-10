@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { profileHeaderProfiles, socialLinks } from "../db/schema.js";
 import { chatCompletion, type ChatMessage, type ImageContentBlock, type TextContentBlock } from "../lib/openrouter.js";
-import { replaceFrontmatterField } from "../lib/frontmatter.js";
+import { replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { fetchProfileHeader } from "../parsers/index.js";
 import { promptPath } from "../lib/paths.js";
@@ -94,7 +94,7 @@ export async function runProfileHeaderAnalyzer(clientId: string) {
     version: nextVersion,
     status,
     platforms: JSON.stringify(platformsWithAvatar),
-    documentMarkdown: document,
+    documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
 

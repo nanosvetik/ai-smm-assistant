@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { copywriterPosts, packagingProfiles, visualGeneratorPrompts } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { replaceFrontmatterField } from "../lib/frontmatter.js";
+import { replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { promptPath } from "../lib/paths.js";
 
@@ -88,7 +88,7 @@ export async function runVisualGenerator(clientId: string, platform: Platform) {
     status,
     copywriterPostVersion: post.version,
     packagingProfileVersion: packaging.version,
-    documentMarkdown: document,
+    documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
 
