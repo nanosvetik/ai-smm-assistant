@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accountStyleProfiles, socialLinks } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
-import { parseFrontmatter, replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
+import { parseFrontmatter, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { fetchPosts, type ParsedPost } from "../parsers/index.js";
 import { buildPostsContext } from "../lib/postsContext.js";
@@ -71,14 +71,7 @@ export async function runAccountAnalyzer(clientId: string) {
     status,
     postsAnalyzed: totalPosts,
     platforms: JSON.stringify(platformsWithPosts),
-    // Число постов модель пересчитывает на глаз и ошибается (в живом прогоне
-    // написала 29 при 33 разобранных). Код это число знает точно — подставляем
-    // его поверх, как и статус с датами.
-    documentMarkdown: replaceFrontmatterField(
-      stampFrontmatterDates(document),
-      "постов_проанализировано",
-      String(totalPosts)
-    ),
+    documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
 
