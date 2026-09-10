@@ -97,13 +97,17 @@ async function deliverResultsLink(clientId: string): Promise<void> {
       console.error("[results] email delivery failed:", err);
     }
   }
-  if (delivered) return;
-
-  // Почта не настроена или письмо не ушло — сообщаем оператору, чтобы переслать
-  // вручную, тем же принципом, что и фолбэк в approval.ts для одобрения заявки.
+  // Оператору сообщаем всегда, а не только при сбое отправки. Раньше
+  // уведомление уходило лишь тогда, когда письмо не удалось отдать почтовому
+  // сервису, — но письмо, попавшее в «Спам», сервис считает доставленным.
+  // Получался беззвучный отказ с обеих сторон: клиент не знал, что работа
+  // закончена, оператор не знал, что клиент не знает.
   if (isTelegramConfigured()) {
+    const mailLine = delivered
+      ? "Письмо отправлено. Оно может попасть в «Спам» — если клиент молчит, перешлите ссылку сами:"
+      : "Письмо клиенту не ушло — перешлите ссылку вручную:";
     sendAdminMessage(
-      `Демо-контент готов у клиента ${client.contactValue}${client.name ? ` (${client.name})` : ""}\n\nПисьмо клиенту не ушло — перешлите ссылку вручную:\n${link}\nДействует до: ${expiresAt.toISOString()}`
+      `Демо-контент готов у клиента ${client.contactValue}${client.name ? ` (${client.name})` : ""}\n\n${mailLine}\n${link}\nДействует до: ${formatExpiryDate(expiresAt)}`
     ).catch((err) => console.error("[results] failed to notify admin:", err));
   }
 }

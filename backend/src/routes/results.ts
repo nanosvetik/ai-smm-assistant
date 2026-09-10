@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { accessLinks, copywriterPosts, generatedImages, generatedVideos, packagingProfiles, reelsScripts, socialLinks } from "../db/schema.js";
+import { accessLinks, clients, copywriterPosts, generatedImages, generatedVideos, packagingProfiles, reelsScripts, socialLinks } from "../db/schema.js";
 import { parseFrontmatter } from "../lib/frontmatter.js";
+import { isTelegramConfigured, sendAdminMessage } from "../lib/telegram.js";
 
 export const resultsRouter = Router();
 
@@ -64,6 +65,30 @@ function themeOf(documentMarkdown: string): string | null {
 // клиента, а не материал для случайного зрителя пересланной ссылки (скачать
 // его можно из кабинета), аналитика же показывает кухню, ради которой имеет
 // смысл вернуться за полной версией.
+// Fire-and-forget: доставка результата клиенту не должна зависеть от того,
+// дошло ли уведомление оператору.
+//
+// Формулировка намеренно осторожная — «ссылку открыли», не «клиент открыл».
+// По ссылкам из писем ходят почтовые антивирусы и предпросмотр в клиентах,
+// иногда раньше человека (из-за этого анкетная ссылка когда-то сгорала до его
+// прихода, см. `access.ts`). Сигнал полезен — «дошло хоть до чего-то», — но
+// доказательством того, что результат увидели глазами, он не является.
+function notifyResultsOpened(clientId: string): void {
+  if (!isTelegramConfigured()) return;
+
+  void (async () => {
+    try {
+      const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
+      if (!client) return;
+      await sendAdminMessage(
+        `Ссылку на результаты открыли впервые — клиент ${client.contactValue}${client.name ? ` (${client.name})` : ""}`
+      );
+    } catch (err) {
+      console.error("[results] failed to notify admin about first open:", err);
+    }
+  })();
+}
+
 resultsRouter.get("/results/:token", async (req, res) => {
   const { token } = req.params;
 
@@ -75,6 +100,20 @@ resultsRouter.get("/results/:token", async (req, res) => {
   if (link.expiresAt.getTime() < Date.now()) {
     res.status(410).json({ error: "link_expired" });
     return;
+  }
+
+  // Отметка о первом открытии. Для results-ссылки `usedAt` означает **не** то
+  // же, что для анкетной: ссылка многоразовая и не сгорает, поле лишь
+  // фиксирует, что по ней хоть раз пришли. Проверку «уже использована» она не
+  // включает — та живёт в `access.ts` и стоит после `kind !== "onboarding"`.
+  //
+  // Без этой отметки нельзя было отличить «клиент посмотрел результат» от
+  // «письмо легло в „Спам“ и о работе никто не узнал»: единственный канал
+  // доставки отвечал успехом в обоих случаях.
+  if (!link.usedAt) {
+    const openedAt = new Date();
+    await db.update(accessLinks).set({ usedAt: openedAt }).where(eq(accessLinks.token, token));
+    notifyResultsOpened(link.clientId);
   }
 
   const own = await db

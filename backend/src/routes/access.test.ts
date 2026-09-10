@@ -14,6 +14,9 @@ process.env.UPLOAD_DIR = path.join(tempDir, "uploads");
 let server: Server;
 let baseUrl: string;
 let approveRequest: typeof import("../admin/approval.js").approveRequest;
+let generateResultsLink: typeof import("../admin/resultsLink.js").generateResultsLink;
+let db: typeof import("../db/index.js").db;
+let schema: typeof import("../db/schema.js");
 
 beforeAll(async () => {
   const Database = (await import("better-sqlite3")).default;
@@ -25,6 +28,9 @@ beforeAll(async () => {
 
   const { createApp } = await import("../app.js");
   ({ approveRequest } = await import("../admin/approval.js"));
+  ({ generateResultsLink } = await import("../admin/resultsLink.js"));
+  ({ db } = await import("../db/index.js"));
+  schema = await import("../db/schema.js");
 
   await new Promise<void>((resolve) => {
     server = createApp().listen(0, () => {
@@ -194,5 +200,52 @@ describe("защита кабинета", () => {
     // при перестановке этот маршрут молча начал бы отвечать 401.
     const res = await fetch(`${baseUrl}/api/results/несуществующий`);
     expect(res.status).toBe(404);
+  });
+});
+
+describe("ссылка на результаты", () => {
+  async function createResultsToken(clientId: string): Promise<string> {
+    await db.insert(schema.clients).values({
+      id: clientId,
+      contactType: "email",
+      contactValue: `${clientId}@example.com`,
+      name: null,
+      createdAt: new Date(),
+    });
+    const { link } = await generateResultsLink(clientId);
+    return link.split("/").pop()!;
+  }
+
+  async function usedAtOf(token: string): Promise<Date | null> {
+    const { eq } = await import("drizzle-orm");
+    const [row] = await db.select().from(schema.accessLinks).where(eq(schema.accessLinks.token, token)).limit(1);
+    return row?.usedAt ?? null;
+  }
+
+  it("отмечает первое открытие, но не сгорает от него", async () => {
+    // Отметка нужна, чтобы отличить «результат посмотрели» от «письмо ушло в
+    // „Спам“ и о работе никто не узнал»: почтовый сервис отвечает успехом в
+    // обоих случаях. Сжигать ссылку при этом нельзя — она рассчитана на
+    // возврат клиента и пересылку другим людям.
+    const token = await createResultsToken("results-open-once");
+
+    expect(await usedAtOf(token)).toBeNull();
+
+    const first = await fetch(`${baseUrl}/api/results/${token}`);
+    expect(first.status).toBe(200);
+
+    const markedAt = await usedAtOf(token);
+    expect(markedAt).not.toBeNull();
+  });
+
+  it("при повторных открытиях сохраняет время первого", async () => {
+    const token = await createResultsToken("results-open-twice");
+
+    await fetch(`${baseUrl}/api/results/${token}`);
+    const firstOpen = await usedAtOf(token);
+
+    const second = await fetch(`${baseUrl}/api/results/${token}`);
+    expect(second.status).toBe(200);
+    expect((await usedAtOf(token))?.getTime()).toBe(firstOpen?.getTime());
   });
 });
