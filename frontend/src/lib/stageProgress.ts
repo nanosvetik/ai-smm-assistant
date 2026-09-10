@@ -23,12 +23,18 @@ export function isStageDone(stage: StageConfig, result: StageResult, platforms: 
 export function buildStageProgress(
   stages: StageConfig[],
   results: Record<string, StageResult>,
-  platforms: Platform[]
+  platforms: Platform[],
+  // Этапы, состояние которых прочитать не удалось. Они не «пройдены», но и
+  // текущими стать не могут: неизвестно, сделаны они или нет, а увести туда
+  // клиента значило бы предложить ему запустить этап заново вслепую.
+  unknownKeys: ReadonlySet<string> = new Set()
 ): Record<string, StageProgressState> {
   const progress: Record<string, StageProgressState> = {};
   let currentFound = false;
   for (const stage of stages) {
-    if (isStageDone(stage, results[stage.key], platforms)) {
+    if (unknownKeys.has(stage.key)) {
+      progress[stage.key] = "future";
+    } else if (isStageDone(stage, results[stage.key], platforms)) {
       progress[stage.key] = "done";
     } else if (!currentFound) {
       progress[stage.key] = "current";

@@ -19,10 +19,17 @@ export function ReelsReferenceUpload() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    getReelsReferences().then((result) => {
-      setReferences(result);
-      setIsLoaded(true);
-    });
+    getReelsReferences()
+      .then((result) => {
+        setReferences(result);
+        setIsLoaded(true);
+      })
+      // Без перехвата зона загрузки исчезала вместе с подсказкой: клиент не
+      // видел ни своих файлов, ни возможности добавить новые.
+      .catch(() => {
+        setError("Не удалось загрузить список фото. Обновите страницу.");
+        setIsLoaded(true);
+      });
   }, []);
 
   async function handleFiles(fileList: FileList | null) {
@@ -46,6 +53,10 @@ export function ReelsReferenceUpload() {
       }
     } finally {
       setIsUploading(false);
+      // Сброс значения обязателен: без него повторный выбор файла с тем же
+      // именем не вызывает событие change — а подсказка выше прямо предлагает
+      // «удалить и загрузить заново», то есть ровно этот сценарий.
+      if (inputRef.current) inputRef.current.value = "";
     }
   }
 

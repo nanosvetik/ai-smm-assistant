@@ -40,6 +40,15 @@ describe("buildStageProgress", () => {
     expect(progress).toEqual({ audience: "done", expertise: "current", plan: "future" });
   });
 
+  it("не делает текущим этап, состояние которого неизвестно", () => {
+    // Чтение результата может не дойти до сервера. Такой этап не «не
+    // запускали»: увести туда клиента значило бы предложить ему запустить
+    // заново то, что, возможно, уже сгенерировано и оплачено.
+    const stages = [stage("audience"), stage("expertise"), stage("plan")];
+    const progress = buildStageProgress(stages, { audience: document }, ["telegram"], new Set(["expertise"]));
+    expect(progress).toEqual({ audience: "done", expertise: "future", plan: "current" });
+  });
+
   it("не двигает текущий этап вперёд из-за пройденного позже", () => {
     // Клиент может запускать этапы не по порядку — текущим остаётся первый
     // незакрытый, а не следующий за последним запущенным.

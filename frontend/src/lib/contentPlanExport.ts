@@ -1,6 +1,7 @@
 import type ExcelJS from "exceljs";
 import { PLATFORM_LABELS } from "./stages";
 import { groupPostsByDay, sortedDays, weekLabel, weekdayLabel, type ContentPlanData, type PlanPost } from "./planData";
+import { downloadBlob } from "./download";
 
 const HEADER_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4A2545" } };
 const HEADER_FONT: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -72,10 +73,5 @@ export async function downloadContentPlanXlsx(plan: ContentPlanData): Promise<vo
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "контент-план.xlsx";
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, "контент-план.xlsx");
 }

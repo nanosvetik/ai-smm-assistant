@@ -50,7 +50,11 @@ export function parseContentPlanData(result: AgentResult | null): ContentPlanDat
 
 export const WEEKDAY_NAMES = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
 
+// День приходит из документа модели, а бэкенд проверяет только тип. Ноль,
+// отрицательное или дробное значение раньше давало индекс вне массива, и в
+// сетке — как и в выгрузке .xlsx — оказывалось «undefined» вместо дня недели.
 export function weekdayLabel(day: number): string {
+  if (!Number.isInteger(day) || day < 1) return `День ${day}`;
   return WEEKDAY_NAMES[(day - 1) % 7];
 }
 

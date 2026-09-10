@@ -21,15 +21,24 @@ interface ImageGenerationBlockProps {
 export function ImageGenerationBlock({ platform, onGeneratePrompt }: ImageGenerationBlockProps) {
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsLoaded(false);
-    getGeneratedImage(platform).then((result) => {
-      setImage(result);
-      setIsLoaded(true);
-    });
+    setLoadFailed(false);
+    getGeneratedImage(platform)
+      .then((result) => {
+        setImage(result);
+        setIsLoaded(true);
+      })
+      // Без перехвата блок навсегда оставался бы в состоянии «ещё грузится» и
+      // возвращал null: этап выглядел бы пустым — ни кнопки, ни объяснения.
+      .catch(() => {
+        setLoadFailed(true);
+        setIsLoaded(true);
+      });
   }, [platform]);
 
   async function handleGenerate() {
@@ -51,6 +60,16 @@ export function ImageGenerationBlock({ platform, onGeneratePrompt }: ImageGenera
   }
 
   if (!isLoaded) return null;
+
+  // Кнопки генерации здесь намеренно нет: неизвестно, есть ли уже готовая
+  // картинка, и клик оплатил бы вторую поверх существующей.
+  if (loadFailed) {
+    return (
+      <div className="image-generation-block">
+        <p className="stage-error">Не удалось проверить, есть ли уже готовая картинка. Обновите страницу.</p>
+      </div>
+    );
+  }
 
   // Расширение из реального файла (jpg/png/webp — зависит от того, что вернула
   // модель) — не жёстко .jpg, скачанный файл должен реально открываться.

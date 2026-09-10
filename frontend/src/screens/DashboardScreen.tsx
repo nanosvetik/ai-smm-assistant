@@ -7,7 +7,7 @@ import { Sidebar, type StageProgress } from "../components/Sidebar";
 import { StagePanel } from "../components/StagePanel";
 import "./DashboardScreen.css";
 
-type LoadState = "loading" | "no_session" | "ready";
+type LoadState = "loading" | "no_session" | "load_failed" | "ready";
 
 function requestBody(stage: StageConfig, platform?: Platform): Record<string, unknown> | undefined {
   if (stage.key === "copywriter") return { platform, day: 1 };
@@ -20,6 +20,10 @@ export function DashboardScreen() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [results, setResults] = useState<Record<string, StageResult>>({});
   const [secondaryResults, setSecondaryResults] = useState<Record<string, AgentResult | null>>({});
+  // Этапы, состояние которых узнать не удалось. Отличать их от «не запускали»
+  // важно: там, где результат может уже существовать, кнопка повторного
+  // запуска — это лишнее платное обращение к моделям.
+  const [failedStages, setFailedStages] = useState<Set<string>>(new Set());
   const [activeKey, setActiveKey] = useState<string>(STAGES[0].key);
 
   useEffect(() => {
@@ -29,38 +33,73 @@ export function DashboardScreen() {
         setPlatforms(clientPlatforms);
 
         const stages = STAGES.filter((s) => !s.vkOnly || clientPlatforms.includes("vk"));
+        const failed = new Set<string>();
+        let sessionExpired = false;
+
+        // Каждый этап читается независимо: раньше одна неудачная выдача
+        // роняла Promise.all целиком, results оставался пустым, и весь кабинет
+        // показывал «Пока не запускали» с кнопкой «Запустить» — приглашение
+        // оплатить заново то, что уже сделано. Теперь неизвестный этап
+        // помечается отдельно и кнопки не получает (см. StagePanel).
+        async function readStage(slug: string, query?: Record<string, string>): Promise<AgentResult | null> {
+          try {
+            return await getAgentResult(slug, query);
+          } catch (err) {
+            if (err instanceof ApiError && err.status === 401) sessionExpired = true;
+            throw err;
+          }
+        }
+
         const entries = await Promise.all(
           stages.map(async (stage): Promise<[string, StageResult]> => {
-            if (!stage.needsPlatform) {
-              return [stage.key, await getAgentResult(stage.agentSlug)];
+            try {
+              if (!stage.needsPlatform) {
+                return [stage.key, await readStage(stage.agentSlug)];
+              }
+              const byPlatform: Partial<Record<Platform, AgentResult | null>> = {};
+              for (const platform of clientPlatforms) {
+                byPlatform[platform] = await readStage(stage.agentSlug, { platform });
+              }
+              return [stage.key, byPlatform];
+            } catch {
+              failed.add(stage.key);
+              return [stage.key, null];
             }
-            const byPlatform: Partial<Record<Platform, AgentResult | null>> = {};
-            for (const platform of clientPlatforms) {
-              byPlatform[platform] = await getAgentResult(stage.agentSlug, { platform });
-            }
-            return [stage.key, byPlatform];
           })
         );
 
+        if (sessionExpired) {
+          setLoadState("no_session");
+          return;
+        }
+
         const resultMap = Object.fromEntries(entries);
         setResults(resultMap);
+        setFailedStages(failed);
 
         const secondaryStages = stages.filter((s) => s.secondaryAgentSlug);
         const secondaryEntries = await Promise.all(
-          secondaryStages.map(async (stage): Promise<[string, AgentResult | null]> => [
-            stage.key,
-            await getAgentResult(stage.secondaryAgentSlug!),
-          ])
+          secondaryStages.map(async (stage): Promise<[string, AgentResult | null]> => {
+            try {
+              return [stage.key, await getAgentResult(stage.secondaryAgentSlug!)];
+            } catch {
+              return [stage.key, null];
+            }
+          })
         );
         setSecondaryResults(Object.fromEntries(secondaryEntries));
 
-        const firstNotDone = stages.find((s) => !isStageDone(s, resultMap[s.key], clientPlatforms));
+        // Первым открывается непройденный этап, но только среди тех, чьё
+        // состояние известно: этап с ошибкой чтения не «непройденный».
+        const firstNotDone = stages.find((s) => !failed.has(s.key) && !isStageDone(s, resultMap[s.key], clientPlatforms));
         setActiveKey((firstNotDone ?? stages[stages.length - 1]).key);
         setLoadState("ready");
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) setLoadState("no_session");
-        else setLoadState("ready");
+        // Анкета не прочиталась — состав площадок неизвестен, а без него
+        // кабинет собрать не из чего. Показываем это прямо, а не пустой экран.
+        else setLoadState("load_failed");
       });
   }, []);
 
@@ -81,10 +120,16 @@ export function DashboardScreen() {
     });
 
     // Бэкенд уже дождался и сохранил вспомогательный агент (см.
-    // routes/agents.ts, account-analyzer) — просто перечитываем его.
+    // routes/agents.ts, account-analyzer) — просто перечитываем его. Сбой
+    // этого чтения не должен выглядеть как провал самого этапа: основной
+    // документ уже сгенерирован, оплачен и показан выше.
     if (stage.secondaryAgentSlug) {
-      const secondary = await getAgentResult(stage.secondaryAgentSlug);
-      setSecondaryResults((prev) => ({ ...prev, [stage.key]: secondary }));
+      try {
+        const secondary = await getAgentResult(stage.secondaryAgentSlug);
+        setSecondaryResults((prev) => ({ ...prev, [stage.key]: secondary }));
+      } catch {
+        setSecondaryResults((prev) => ({ ...prev, [stage.key]: null }));
+      }
     }
   }
 
@@ -107,8 +152,19 @@ export function DashboardScreen() {
     );
   }
 
+  if (loadState === "load_failed") {
+    return (
+      <div className="dashboard-screen">
+        <div className="dashboard-no-session">
+          <h1>Не удалось загрузить кабинет</h1>
+          <p>Обновите страницу. Всё, что уже сделано, сохранено — ничего не потерялось.</p>
+        </div>
+      </div>
+    );
+  }
+
   const visibleStages = STAGES.filter((s) => !s.vkOnly || platforms.includes("vk"));
-  const progress: Record<string, StageProgress> = buildStageProgress(visibleStages, results, platforms);
+  const progress: Record<string, StageProgress> = buildStageProgress(visibleStages, results, platforms, failedStages);
 
   const activeStage = visibleStages.find((s) => s.key === activeKey) ?? visibleStages[0];
 
@@ -121,6 +177,7 @@ export function DashboardScreen() {
           stage={activeStage}
           platforms={platforms}
           result={results[activeStage.key] ?? null}
+          resultUnknown={failedStages.has(activeStage.key)}
           secondaryResult={secondaryResults[activeStage.key] ?? null}
           onRun={(platform) => handleRun(activeStage, platform)}
         />

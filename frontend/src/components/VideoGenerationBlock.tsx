@@ -15,15 +15,23 @@ import "./ImageGenerationBlock.css";
 export function VideoGenerationBlock() {
   const [video, setVideo] = useState<GeneratedVideo | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsLoaded(false);
-    getGeneratedVideo().then((result) => {
-      setVideo(result);
-      setIsLoaded(true);
-    });
+    getGeneratedVideo()
+      .then((result) => {
+        setVideo(result);
+        setIsLoaded(true);
+      })
+      // Без перехвата блок молча исчезал: этап «Рилсы» выглядел законченным,
+      // хотя видео не сгенерировано и кнопки для этого нет.
+      .catch(() => {
+        setLoadFailed(true);
+        setIsLoaded(true);
+      });
   }, []);
 
   async function handleGenerate() {
@@ -45,6 +53,16 @@ export function VideoGenerationBlock() {
   }
 
   if (!isLoaded) return null;
+
+  // Клип — самая дорогая операция сервиса, поэтому при неизвестном состоянии
+  // кнопка не показывается: она могла бы оплатить второе видео поверх готового.
+  if (loadFailed) {
+    return (
+      <div className="image-generation-block">
+        <p className="stage-error">Не удалось проверить, есть ли уже готовое видео. Обновите страницу.</p>
+      </div>
+    );
+  }
 
   const extension = video?.publicUrl.split(".").pop() ?? "mp4";
 

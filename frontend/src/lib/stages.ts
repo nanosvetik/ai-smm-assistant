@@ -128,3 +128,20 @@ export const AGENT_LABELS: Record<string, string> = {
 export function describeMissing(missing: string[]): string {
   return missing.map((slug) => AGENT_LABELS[slug] ?? slug).join(", ");
 }
+
+// Отказы, которые повтором не лечатся: пока не изменятся данные клиента,
+// ответ будет тем же. Предлагать «попробуйте ещё раз» на них — отправлять
+// человека по кругу, поэтому у каждого свой текст с причиной.
+const PERMANENT_ERRORS: Record<string, string> = {
+  onboarding_data_missing: "Сначала заполните анкету — без неё этот этап запускать не из чего.",
+  own_links_missing: "В анкете не указано ни одной своей площадки, а этот этап разбирает именно ваши посты.",
+  competitor_links_missing: "В анкете не указаны конкуренты — этот этап разбирает именно их.",
+  references_missing: "Не загружено ни одного фото-референса, разбирать нечего.",
+  platform_not_in_plan: "В контент-плане нет постов для этой площадки.",
+  reels_not_available: "Reels в этом продукте существуют только для ВК, а он не указан в анкете.",
+  invalid_request: "Запрос не принят сервисом. Обновите страницу и попробуйте снова.",
+};
+
+export function describePermanentError(code: string): string | null {
+  return PERMANENT_ERRORS[code] ?? null;
+}

@@ -21,12 +21,37 @@ async function hasReelsScript(clientId: string): Promise<boolean> {
   return row != null;
 }
 
-// Вызывается «на удачу» после каждого сохранения поста/сценария (см.
-// routes/agents.ts, POST copywriter/reels-writer) — не часть основного
-// ответа клиенту (fire-and-forget, ошибки только логируются). Идемпотентно:
-// если results-ссылка для клиента уже существует, ничего не делает — вызов
-// на 5-й клик подряд не создаёт 5 ссылок и не шлёт 5 писем.
-export async function ensureResultsLinkSent(clientId: string): Promise<void> {
+// Вызовы по одному клиенту выстраиваются в очередь. Проверка «ссылка уже
+// есть» и её создание — два отдельных обращения к базе, между которыми
+// параллельный вызов успевает пройти ту же проверку: клиент, сгенерировавший
+// последний пост в двух вкладках, получал два письма с двумя разными
+// действующими ссылками. Сервис однопроцессный (SQLite на одном сервере, см.
+// docs/decision-log.md), поэтому очереди в памяти достаточно; при переходе на
+// несколько процессов понадобится уникальный индекс на (client_id, kind).
+const pendingByClient = new Map<string, Promise<void>>();
+
+export function ensureResultsLinkSent(clientId: string): Promise<void> {
+  const previous = pendingByClient.get(clientId) ?? Promise.resolve();
+  const next = previous.then(() => deliverResultsLink(clientId));
+
+  // В очереди лежит заведомо не падающий промис: сбой одной доставки не должен
+  // отменять следующую и не должен всплывать как необработанный — вызывающая
+  // сторона получает исходный next и обрабатывает ошибку сама.
+  const settled = next.catch(() => {});
+  pendingByClient.set(clientId, settled);
+  settled.then(() => {
+    if (pendingByClient.get(clientId) === settled) pendingByClient.delete(clientId);
+  });
+
+  return next;
+}
+
+// Вызывается «на удачу» после каждого сохранения поста/сценария и после
+// run-all (см. routes/agents.ts) — не часть основного ответа клиенту
+// (fire-and-forget, ошибки только логируются). Идемпотентно: если
+// results-ссылка для клиента уже существует, ничего не делает — вызов на 5-й
+// клик подряд не создаёт 5 ссылок и не шлёт 5 писем.
+async function deliverResultsLink(clientId: string): Promise<void> {
   const [existing] = await db
     .select({ token: accessLinks.token })
     .from(accessLinks)

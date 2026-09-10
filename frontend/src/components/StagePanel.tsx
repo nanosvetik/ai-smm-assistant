@@ -2,9 +2,11 @@ import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ApiError, type AgentResult, type Platform } from "../lib/api";
-import { PLATFORM_LABELS, describeMissing, type StageConfig } from "../lib/stages";
+import { PLATFORM_LABELS, describeMissing, describePermanentError, type StageConfig } from "../lib/stages";
 import { stripFrontmatter } from "../lib/markdown";
 import { parseContentPlanData } from "../lib/planData";
+import { copyText } from "../lib/clipboard";
+import { downloadBlob } from "../lib/download";
 import { Button } from "./Button";
 import { ContentPlanGrid } from "./ContentPlanGrid";
 import { ImageGenerationBlock } from "./ImageGenerationBlock";
@@ -28,23 +30,20 @@ import "./StagePanel.css";
 function PostCard({ documentMarkdown, platform }: { documentMarkdown: string; platform?: string }) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   async function handleCopy() {
     const text = bodyRef.current?.innerText ?? "";
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const ok = await copyText(text);
+    setCopied(ok);
+    setCopyFailed(!ok);
+    if (ok) setTimeout(() => setCopied(false), 2000);
   }
 
   function handleDownload() {
     const text = bodyRef.current?.innerText ?? "";
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `пост${platform ? `-${platform}` : ""}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `пост${platform ? `-${platform}` : ""}.txt`);
   }
 
   return (
@@ -65,6 +64,11 @@ function PostCard({ documentMarkdown, platform }: { documentMarkdown: string; pl
           Скачать текст (.txt)
         </Button>
       </div>
+      {copyFailed && (
+        <p className="stage-error">
+          Браузер не дал скопировать текст. Выделите его мышью и скопируйте вручную или скачайте файлом.
+        </p>
+      )}
     </>
   );
 }
@@ -93,6 +97,10 @@ interface StagePanelProps {
   stage: StageConfig;
   platforms: Platform[];
   result: AgentResult | null | Partial<Record<Platform, AgentResult | null>>;
+  // Состояние этапа не удалось прочитать. Это не то же самое, что «не
+  // запускали»: результат может уже существовать, поэтому кнопки запуска
+  // здесь быть не должно — она стоила бы клиенту повторной генерации.
+  resultUnknown?: boolean;
   secondaryResult?: AgentResult | null;
   onRun: (platform?: Platform) => Promise<void>;
 }
@@ -154,6 +162,12 @@ function RunBlock({
     } catch (err) {
       if (err instanceof ApiError && err.missing && err.missing.length > 0) {
         setError(`Сначала пройдите: ${describeMissing(err.missing)}.`);
+      } else if (err instanceof ApiError && describePermanentError(err.code)) {
+        // Такой отказ повтором не лечится — «попробуйте ещё раз» здесь
+        // отправляло бы человека по кругу за тем же ответом.
+        setError(describePermanentError(err.code)!);
+      } else if (err instanceof ApiError && err.status === 401) {
+        setError("Срок доступа истёк. Откройте кабинет заново по ссылке из письма.");
       } else if (err instanceof ApiError) {
         setError("Не получилось запустить этот этап. Попробуйте ещё раз.");
       } else {
@@ -219,7 +233,7 @@ function SecondaryBlock({ label, result }: { label: string; result: AgentResult 
   );
 }
 
-export function StagePanel({ stage, platforms, result, secondaryResult, onRun }: StagePanelProps) {
+export function StagePanel({ stage, platforms, result, resultUnknown, secondaryResult, onRun }: StagePanelProps) {
   const emptyHint = `Пока не запускали — нажмите «Запустить» ниже, чтобы получить первый результат.`;
 
   return (
@@ -227,7 +241,19 @@ export function StagePanel({ stage, platforms, result, secondaryResult, onRun }:
       <h1>{stage.label}</h1>
       <p className="stage-description">{stage.description}</p>
 
-      {stage.needsPlatform ? (
+      {resultUnknown ? (
+        <p className="stage-error">
+          Не удалось загрузить состояние этого этапа. Обновите страницу — если он уже пройден, результат вернётся.
+        </p>
+      ) : stage.needsPlatform && platforms.length === 0 ? (
+        // Анкета разрешает не указывать свои площадки вовсе. Без этой ветки
+        // «Посты» и «Изображения» показывали пустой блок: ни кнопки, ни
+        // объяснения, а в сайдбаре этап навсегда оставался непройденным.
+        <p className="stage-empty">
+          Этот этап делается под конкретную площадку, а в анкете не указано ни одной вашей. Аналитические этапы выше
+          работают и без них.
+        </p>
+      ) : stage.needsPlatform ? (
         <div className="stage-platforms">
           {platforms.map((platform, index) => {
             const platformResult = (result as Partial<Record<Platform, AgentResult | null>>)?.[platform] ?? null;

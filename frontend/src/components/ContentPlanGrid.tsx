@@ -11,14 +11,21 @@ import "./ContentPlanGrid.css";
 // что писать надо каждый день.
 export function ContentPlanGrid({ plan }: { plan: ContentPlanData }) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const byDay = groupPostsByDay(plan.posts);
   const days = sortedDays(byDay);
 
   async function handleDownload() {
     setIsDownloading(true);
+    setError(null);
     try {
       await downloadContentPlanXlsx(plan);
+    } catch {
+      // Сборка книги грузит exceljs отдельным чанком и может не собраться:
+      // молчать здесь нельзя — прямо над кнопкой написано, что план больше
+      // нигде не хранится, и клиент решит, что файл сохранён.
+      setError("Не получилось собрать файл. Попробуйте ещё раз — или скопируйте темы из таблицы ниже.");
     } finally {
       setIsDownloading(false);
     }
@@ -36,6 +43,7 @@ export function ContentPlanGrid({ plan }: { plan: ContentPlanData }) {
           {isDownloading ? "Готовим файл…" : "Скачать таблицу (.xlsx)"}
         </Button>
       </div>
+      {error && <p className="stage-error">{error}</p>}
 
       {days.length === 0 ? (
         <p className="content-plan-empty">В этом плане пока нет ни одного запланированного дня.</p>
