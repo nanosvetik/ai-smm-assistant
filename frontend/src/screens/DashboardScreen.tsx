@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
-import { ApiError, getAgentResult, getOnboarding, runAgent, type AgentResult, type Platform } from "../lib/api";
+import {
+  ApiError,
+  getAgentResult,
+  getOnboarding,
+  getResultsLink,
+  runAgent,
+  type AgentResult,
+  type Platform,
+  type ResultsLink,
+} from "../lib/api";
 import { STAGES, type StageConfig } from "../lib/stages";
 import { buildStageProgress, isStageDone, type StageResult } from "../lib/stageProgress";
 import { AppHeader } from "../components/AppHeader";
+import { CompletionBanner } from "../components/CompletionBanner";
 import { Sidebar, type StageProgress } from "../components/Sidebar";
 import { StagePanel } from "../components/StagePanel";
 import "./DashboardScreen.css";
@@ -25,6 +35,10 @@ export function DashboardScreen() {
   // запуска — это лишнее платное обращение к моделям.
   const [failedStages, setFailedStages] = useState<Set<string>>(new Set());
   const [activeKey, setActiveKey] = useState<string>(STAGES[0].key);
+  // Ссылка на результаты появляется, только когда собран весь демо-контент.
+  // Сбой её чтения намеренно не показывается: это дополнение к экрану, а не
+  // сам экран — незачем пугать ошибкой того, у кого всё сгенерировалось.
+  const [resultsLink, setResultsLink] = useState<ResultsLink | null>(null);
 
   useEffect(() => {
     getOnboarding()
@@ -94,6 +108,8 @@ export function DashboardScreen() {
         const firstNotDone = stages.find((s) => !failed.has(s.key) && !isStageDone(s, resultMap[s.key], clientPlatforms));
         setActiveKey((firstNotDone ?? stages[stages.length - 1]).key);
         setLoadState("ready");
+
+        void refreshResultsLink();
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) setLoadState("no_session");
@@ -102,6 +118,14 @@ export function DashboardScreen() {
         else setLoadState("load_failed");
       });
   }, []);
+
+  async function refreshResultsLink() {
+    try {
+      setResultsLink(await getResultsLink());
+    } catch {
+      // Молча: блок «всё готово» — дополнение, а не содержимое кабинета.
+    }
+  }
 
   // Смена этапа — не настоящая навигация браузера (SPA), скролл страницы сам
   // не сбрасывается: без этого новый документ открывался бы с той же
@@ -131,6 +155,12 @@ export function DashboardScreen() {
         setSecondaryResults((prev) => ({ ...prev, [stage.key]: null }));
       }
     }
+
+    // Последний недостающий текст мог только что закрыть весь демо-набор —
+    // тогда ссылка на результаты создаётся именно этим запросом (см.
+    // /api/results-link), и блок «всё готово» появляется сразу, а не после
+    // перезагрузки страницы.
+    await refreshResultsLink();
   }
 
   if (loadState === "loading") {
@@ -171,6 +201,11 @@ export function DashboardScreen() {
   return (
     <>
       <AppHeader />
+      {resultsLink && (
+        <div className="dashboard-completion">
+          <CompletionBanner url={resultsLink.url} />
+        </div>
+      )}
       <div className="dashboard-screen">
         <Sidebar stages={visibleStages} progress={progress} activeKey={activeStage.key} onSelect={handleSelectStage} />
         <StagePanel

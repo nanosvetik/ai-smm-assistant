@@ -1,9 +1,16 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accessLinks, clients } from "../db/schema.js";
 import { generateToken, RESULTS_LINK_TTL_MS } from "../lib/tokens.js";
 
 export class ResultsLinkError extends Error {}
+
+// BASE_URL читается при каждом вызове, а не при загрузке модуля: тесты и
+// admin-скрипты поднимают окружение в разном порядке.
+function resultsUrl(token: string): string {
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:5173";
+  return `${baseUrl}/results/${token}`;
+}
 
 // Ссылка на готовое демо только для чтения. В отличие от анкетной, не
 // сгорает: рассчитана на возврат клиента и пересылку другим людям. Обычно вызывается
@@ -24,6 +31,19 @@ export async function generateResultsLink(clientId: string) {
     createdAt: now,
   });
 
-  const baseUrl = process.env.BASE_URL ?? "http://localhost:5173";
-  return { link: `${baseUrl}/results/${token}`, expiresAt };
+  return { link: resultsUrl(token), expiresAt };
+}
+
+// Ссылка на результаты, если она уже создана. Нужна кабинету: до этого
+// единственным каналом доставки было письмо, а письмо с домена без репутации
+// уходит в «Спам» — клиент, дошедший до конца, не видел готовый демо-контент
+// вовсе и не имел способа о нём узнать.
+export async function findResultsLink(clientId: string) {
+  const [row] = await db
+    .select({ token: accessLinks.token, expiresAt: accessLinks.expiresAt })
+    .from(accessLinks)
+    .where(and(eq(accessLinks.clientId, clientId), eq(accessLinks.kind, "results")))
+    .limit(1);
+  if (!row) return null;
+  return { link: resultsUrl(row.token), expiresAt: row.expiresAt };
 }

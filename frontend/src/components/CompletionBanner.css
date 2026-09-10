@@ -1,0 +1,56 @@
+/* Изумрудный здесь не украшение: в палитре он означает ровно одно — «готово»
+   (см. index.css), тот же цвет, что и у пройденных этапов в сайдбаре. */
+.completion-banner {
+  border: 1px solid var(--color-emerald);
+  border-radius: var(--radius-card);
+  background: #f2f7f4;
+  padding: 20px 24px;
+  margin-bottom: var(--space-card-gap);
+}
+
+.completion-banner-title {
+  font-family: var(--font-display);
+  color: var(--color-emerald);
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.completion-banner-lead {
+  margin: 0 0 14px;
+  max-width: 60ch;
+}
+
+/* Ссылка длинная и без пробелов: без принудительного переноса она растягивает
+   блок и на узком экране уезжает за край. */
+.completion-banner-link {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-muted-strong);
+  background: #fff;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0 0 14px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.completion-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.completion-banner-actions .btn {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}
+
+.completion-banner-note {
+  font-size: 13px;
+  color: var(--color-muted-strong);
+  margin: 12px 0 0;
+  max-width: 60ch;
+}

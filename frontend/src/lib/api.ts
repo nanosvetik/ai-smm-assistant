@@ -222,3 +222,20 @@ export interface ResultsBundle {
 export function getResults(token: string) {
   return request<ResultsBundle>(`/results/${token}`);
 }
+
+// Та же ссылка, но выданная самому клиенту по сессии, а не по токену в URL.
+// Кабинет показывает её блоком «всё готово». 404 здесь — не ошибка, а «демо
+// ещё не собрано целиком», обычное состояние на середине пути.
+export interface ResultsLink {
+  url: string;
+  expiresAt: string;
+}
+
+export async function getResultsLink(): Promise<ResultsLink | null> {
+  try {
+    return await request<ResultsLink>("/results-link", { method: "GET" });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}

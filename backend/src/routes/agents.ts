@@ -33,6 +33,7 @@ import { PrerequisitesMissingError as EditorInChiefPrerequisitesMissingError, ru
 import { runReviewedCopywriter, runReviewedReelsWriter } from "../agents/reviewedContent.js";
 import { runFullPipeline } from "../agents/pipeline.js";
 import { ensureResultsLinkSent } from "../agents/resultsDelivery.js";
+import { findResultsLink } from "../admin/resultsLink.js";
 
 export const agentsRouter = Router();
 agentsRouter.use(requireSession);
@@ -696,4 +697,29 @@ agentsRouter.post("/agents/run-all", async (req, res) => {
     console.error("[agents] run-all failed unexpectedly:", err);
     res.status(500).json({ error: "pipeline_failed" });
   }
+});
+
+// Ссылка на готовое демо для самого клиента, по сессии. Кабинет показывает её
+// блоком «всё готово»: до этого о готовности сообщало только письмо, а письмо
+// уходит в «Спам» — клиент оставался на последнем экране, не зная, что работа
+// закончена и результат уже существует.
+//
+// Здесь не просто чтение: ensureResultsLinkSent идемпотентен и сам проверяет
+// полноту демо-контента, поэтому вызов заодно чинит случай, когда
+// fire-and-forget после генерации поста не отработал — иначе ссылка не
+// появилась бы уже никогда. Сбой доставки не должен ломать сам ответ: письмо
+// вторично, ссылка в базе первична.
+agentsRouter.get("/results-link", async (req, res) => {
+  try {
+    await ensureResultsLinkSent(req.clientId!);
+  } catch (err) {
+    console.error("[results] ensureResultsLinkSent failed:", err);
+  }
+
+  const link = await findResultsLink(req.clientId!);
+  if (!link) {
+    res.status(404).json({ error: "not_ready" });
+    return;
+  }
+  res.json({ url: link.link, expiresAt: link.expiresAt });
 });
