@@ -207,7 +207,13 @@ export function DashboardScreen() {
         </div>
       )}
       <div className="dashboard-screen">
-        <Sidebar stages={visibleStages} progress={progress} activeKey={activeStage.key} onSelect={handleSelectStage} />
+        <Sidebar
+          stages={visibleStages}
+          progress={progress}
+          activeKey={activeStage.key}
+          onSelect={handleSelectStage}
+          resultsUrl={resultsLink?.url ?? null}
+        />
         <StagePanel
           stage={activeStage}
           platforms={platforms}

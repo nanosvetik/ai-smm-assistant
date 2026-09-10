@@ -129,3 +129,31 @@
 .sidebar-group-break {
   margin-bottom: 16px;
 }
+
+/* Итог работы, а не ещё один этап: отделён чертой и залит изумрудным, который
+   в палитре означает «готово». Стоит в sticky-колонке, поэтому виден и с
+   середины длинного документа — блок наверху страницы к этому моменту уже
+   уехал за край экрана. */
+.sidebar-results {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--color-border-soft);
+  padding-top: 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-emerald);
+  text-decoration: none;
+}
+
+.sidebar-results:hover {
+  text-decoration: underline;
+}
+
+.sidebar-results-mark {
+  width: 16px;
+  flex: 0 0 auto;
+  font-size: 14px;
+}

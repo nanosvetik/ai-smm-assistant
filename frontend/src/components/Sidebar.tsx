@@ -9,6 +9,10 @@ interface SidebarProps {
   progress: Record<string, StageProgress>;
   activeKey: string;
   onSelect: (key: string) => void;
+  // Появляется, когда демо-контент собран целиком. Живёт именно здесь, а не
+  // только в блоке наверху страницы: документы этапов длинные, и с середины
+  // рилса верх экрана не виден — а сайдбар едет вместе с прокруткой.
+  resultsUrl?: string | null;
 }
 
 // Три смысловых блока конвейера (разбор → стратегия → готовый контент,
@@ -25,7 +29,7 @@ const GROUP_BREAK_AFTER = new Set(["competitor-analyzer", "content-planner"]);
 // затемнение в разметке есть
 // всегда, видимость переключается через CSS-медиазапрос (не JS matchMedia) —
 // проще и не требует ресайз-слушателя.
-export function Sidebar({ stages, progress, activeKey, onSelect }: SidebarProps) {
+export function Sidebar({ stages, progress, activeKey, onSelect, resultsUrl }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const activeStage = stages.find((s) => s.key === activeKey);
 
@@ -74,6 +78,14 @@ export function Sidebar({ stages, progress, activeKey, onSelect }: SidebarProps)
           );
         })}
       </nav>
+      {resultsUrl && (
+        <a className="sidebar-results" href={resultsUrl} target="_blank" rel="noopener noreferrer">
+          <span className="sidebar-results-mark" aria-hidden="true">
+            ✓
+          </span>
+          <span>Смотреть результаты</span>
+        </a>
+      )}
     </div>
   );
 }
