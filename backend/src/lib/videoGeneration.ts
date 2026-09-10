@@ -23,10 +23,18 @@ const ASPECT_RATIO = "9:16";
 // под кадр собственный эмбиент.
 const GENERATE_AUDIO = false;
 
-// Подтверждено эмпирически в smm-mcp: 3-секундный клип на Kling v3.0 Pro
-// завершился за ~60 сек, поэтому таймаут поллинга — с запасом.
+// Потолок ожидания упирается не в модель, а в HTTP: генерация висит внутри
+// одного запроса от браузера, а `server.requestTimeout` в Node по умолчанию —
+// 300 секунд. Больше этого ждать бессмысленно: соединение оборвётся раньше,
+// чем дождётся код. 50 попыток по 5 секунд — 250 секунд, с запасом на
+// создание задачи и скачивание файла.
+//
+// Прежние 200 секунд оказались малы: клип с референсным кадром на Kling v3.0
+// Pro не уложился и остался в статусе `pending` — оплаченная задача при этом
+// теряется целиком (см. ниже про запись адреса опроса). Настоящее лечение —
+// фоновая задача с опросом со стороны интерфейса, но это выходит за объём MVP.
 const POLL_INTERVAL_MS = 5000;
-const MAX_POLL_ATTEMPTS = 40;
+const MAX_POLL_ATTEMPTS = 50;
 
 const REELS_DIR = path.join(WORKSPACE_ROOT, "07-reels");
 
@@ -126,6 +134,14 @@ export async function generateVideoFile(prompt: string, referenceImagePath?: str
     throw new Error(`generateVideoFile: no polling_url in job: ${JSON.stringify(job)}`);
   }
 
+  // Адрес опроса пишется в журнал сразу после создания задачи, до первого
+  // ожидания. Задача уже оплачена в этот момент, а живёт этот адрес только в
+  // памяти процесса: при обрыве поллинга (таймаут, перезапуск службы, разрыв
+  // соединения) готовый клип оказывался невосстановимым — у обычного ключа
+  // OpenRouter нет ни списка задач, ни доступа к активности аккаунта.
+  // Строчка в журнале — единственный способ забрать оплаченное вручную.
+  console.log(`[video] job created, polling ${pollingUrl}`);
+
   for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
     if (job.status === "completed") break;
     if (["failed", "cancelled", "expired"].includes(job.status)) {
@@ -146,7 +162,7 @@ export async function generateVideoFile(prompt: string, referenceImagePath?: str
 
   if (job.status !== "completed") {
     throw new Error(
-      `generateVideoFile: timed out after ${MAX_POLL_ATTEMPTS} polls (${(MAX_POLL_ATTEMPTS * POLL_INTERVAL_MS) / 1000}s), last status: ${job.status}`
+      `generateVideoFile: timed out after ${MAX_POLL_ATTEMPTS} polls (${(MAX_POLL_ATTEMPTS * POLL_INTERVAL_MS) / 1000}s), last status: ${job.status}. Задача оплачена и, возможно, ещё считается — забрать вручную: ${pollingUrl}`
     );
   }
 
