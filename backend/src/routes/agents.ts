@@ -462,6 +462,7 @@ agentsRouter.post("/agents/generate-image", async (req, res) => {
       return;
     }
     if (err instanceof PromptNotFoundError) {
+      console.error("[agents] prompt block not found in agent document:", err);
       res.status(502).json({ error: "prompt_not_found" });
       return;
     }
@@ -588,6 +589,7 @@ agentsRouter.post("/agents/generate-video", async (req, res) => {
       return;
     }
     if (err instanceof VideoPromptNotFoundError) {
+      console.error("[agents] prompt block not found in agent document:", err);
       res.status(502).json({ error: "prompt_not_found" });
       return;
     }
