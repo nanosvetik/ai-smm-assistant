@@ -15,6 +15,14 @@ const VIDEO_MODEL = "kwaivgi/kling-v3.0-pro";
 const VIDEO_DURATION_SECONDS = 5;
 const ASPECT_RATIO = "9:16";
 
+// Звук выключается явно. `generate_audio` по умолчанию `true` у всех моделей,
+// которые умеют звук, а тарифицируется он отдельным SKU: у Kling v3.0 Pro
+// $0.168 за секунду со звуком против $0.112 без — пятисекундный клип стоил
+// $0.84 вместо $0.56. Продукту звук не нужен и мешает: сценарий рилса содержит
+// раздел «Текст озвучки», который клиент начитывает сам, а модель подкладывает
+// под кадр собственный эмбиент.
+const GENERATE_AUDIO = false;
+
 // Подтверждено эмпирически в smm-mcp: 3-секундный клип на Kling v3.0 Pro
 // завершился за ~60 сек, поэтому таймаут поллинга — с запасом.
 const POLL_INTERVAL_MS = 5000;
@@ -99,6 +107,7 @@ export async function generateVideoFile(prompt: string, referenceImagePath?: str
       prompt,
       duration: VIDEO_DURATION_SECONDS,
       aspect_ratio: ASPECT_RATIO,
+      generate_audio: GENERATE_AUDIO,
       ...(frameImages ? { frame_images: frameImages } : {}),
     }),
   });
