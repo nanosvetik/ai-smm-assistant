@@ -5,13 +5,17 @@ import type { ParsedPost, ProfileHeader } from "./types.js";
 // Разбираем публичное веб-превью канала, а не Bot API: свой канал клиента и
 // канал конкурента должны читаться одинаково, а в чужом канале бот не админ и
 // доступа к API у него нет.
-function extractChannel(url: string): string {
+// Поддомен www. и запасные имена домена срезаются наравне с основным: иначе
+// адрес, скопированный из браузера, уезжает в запрос целиком и канал просто
+// не находится.
+export function extractChannel(url: string): string {
   const cleaned = url
     .trim()
-    .replace(/^https?:\/\//, "")
-    .replace(/^t\.me\//, "")
-    .replace(/^s\//, "");
-  return cleaned.split(/[/?]/)[0];
+    .replace(/^https?:\/\//i, "")
+    .replace(/^(www|m)\./i, "")
+    .replace(/^(t\.me|telegram\.me|telegram\.dog)\//i, "")
+    .replace(/^s\//i, "");
+  return cleaned.split(/[/?#]/)[0];
 }
 
 // t.me/s/ отображает просмотры сокращённо ("16.4M", "23K") — разворачиваем в число.

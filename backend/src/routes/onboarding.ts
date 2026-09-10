@@ -6,7 +6,7 @@ import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
 import { accessLinks, socialLinks, onboardingProfiles, referenceFiles } from "../db/schema.js";
 import { generateId } from "../lib/tokens.js";
-import { createImageUpload, handleUpload } from "../lib/uploads.js";
+import { createImageUpload, decodeOriginalFilename, handleUpload } from "../lib/uploads.js";
 import { UPLOAD_ROOT } from "../lib/paths.js";
 
 export const onboardingRouter = Router();
@@ -23,7 +23,15 @@ const linkSchema = z.object({
 // ровно то, без чего распаковка аудитории и экспертности выродится в общие
 // слова.
 const onboardingSchema = z.object({
-  ownLinks: z.array(linkSchema).max(2),
+  // Одна ссылка на площадку: анализ аккаунта складывает посты в словарь по
+  // площадке, так что второй канал той же соцсети просто вытеснил бы первый и
+  // молча выпал бы из разбора вместе с демо-постом для него.
+  ownLinks: z
+    .array(linkSchema)
+    .max(2)
+    .refine((links) => new Set(links.map((l) => l.platform)).size === links.length, {
+      message: "Одна ссылка на площадку: два аккаунта одной соцсети не поддерживаются",
+    }),
   competitorLinks: z.array(linkSchema).min(2).max(3),
   questionnaire: z.object({
     salesModel: z.enum(["b2c", "b2b"]),
@@ -164,7 +172,7 @@ onboardingRouter.post(
       clientId,
       category,
       filePath: relativePath,
-      originalFilename: req.file.originalname,
+      originalFilename: decodeOriginalFilename(req.file.originalname),
       createdAt: new Date(),
     });
 

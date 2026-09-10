@@ -6,7 +6,7 @@ import { requireSession } from "../middleware/session.js";
 import { db } from "../db/index.js";
 import { reelsReferenceFiles } from "../db/schema.js";
 import { generateId } from "../lib/tokens.js";
-import { createImageUpload, handleUpload } from "../lib/uploads.js";
+import { createImageUpload, decodeOriginalFilename, handleUpload } from "../lib/uploads.js";
 import { UPLOAD_ROOT } from "../lib/paths.js";
 
 export const reelsReferencesRouter = Router();
@@ -26,10 +26,7 @@ reelsReferencesRouter.post("/reels-references", handleUpload(upload.single("file
   const clientId = req.clientId!;
   const id = generateId();
   const relativePath = path.relative(UPLOAD_ROOT, req.file.path).split(path.sep).join("/");
-  // busboy декодирует заголовки multipart как latin1 по умолчанию — кириллица
-  // в имени файла приходит побайтово корректной, но интерпретированной не той
-  // кодировкой (кракозябры). Перекодируем обратно в UTF-8.
-  const originalFilename = Buffer.from(req.file.originalname, "latin1").toString("utf8");
+  const originalFilename = decodeOriginalFilename(req.file.originalname);
 
   await db.insert(reelsReferenceFiles).values({
     id,

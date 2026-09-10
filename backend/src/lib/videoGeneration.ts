@@ -108,6 +108,15 @@ export async function generateVideoFile(prompt: string, referenceImagePath?: str
 
   let job = (await createRes.json()) as VideoJob;
 
+  // Адрес опроса берётся из ответа на создание задачи и дальше не меняется.
+  // Перечитывать его из каждого ответа опроса нельзя: поле документировано для
+  // ответа на POST /videos, и если очередной ответ его не повторит, оплаченная
+  // задача будет просто брошена на середине — Kling считает клип около минуты.
+  const pollingUrl = job.polling_url;
+  if (!pollingUrl) {
+    throw new Error(`generateVideoFile: no polling_url in job: ${JSON.stringify(job)}`);
+  }
+
   for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
     if (job.status === "completed") break;
     if (["failed", "cancelled", "expired"].includes(job.status)) {
@@ -116,13 +125,10 @@ export async function generateVideoFile(prompt: string, referenceImagePath?: str
 
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
 
-    if (!job.polling_url) {
-      throw new Error(`generateVideoFile: no polling_url in job: ${JSON.stringify(job)}`);
-    }
-    // polling_url и ссылка на готовый файл приходят внутри ответа и ведут на
-    // openrouter.ai и его хранилище — им нужен тот же заграничный выход, что и
-    // первому запросу, иначе генерация встанет на втором шаге.
-    const pollRes = await proxiedFetch(job.polling_url, { method: "GET", headers });
+    // polling_url и ссылка на готовый файл ведут на openrouter.ai и его
+    // хранилище — им нужен тот же заграничный выход, что и первому запросу,
+    // иначе генерация встанет на втором шаге.
+    const pollRes = await proxiedFetch(pollingUrl, { method: "GET", headers });
     if (!pollRes.ok) {
       throw new Error(`generateVideoFile: polling failed (HTTP ${pollRes.status}): ${await pollRes.text()}`);
     }

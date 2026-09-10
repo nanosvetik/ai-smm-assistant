@@ -19,12 +19,17 @@ interface VkWallGetResponse {
 
 // domain принимает как имена пользователей, так и короткие адреса сообществ
 // (vk.com/durov -> "durov", vk.com/club123 -> "club123").
-function extractDomain(url: string): string {
+// Поддомены www./m. срезаются отдельно: адрес из мобильного приложения или
+// скопированный из адресной строки иначе не опознавался как ВК, домен уезжал
+// в API целиком ("www.vk.com"), а ошибка ВК роняла обязательный этап и вместе
+// с ним весь прогон.
+export function extractDomain(url: string): string {
   const cleaned = url
     .trim()
-    .replace(/^https?:\/\//, "")
-    .replace(/^(vk\.com|vk\.ru)\//, "");
-  return cleaned.split(/[/?]/)[0];
+    .replace(/^https?:\/\//i, "")
+    .replace(/^(www|m)\./i, "")
+    .replace(/^(vk\.com|vk\.ru)\//i, "");
+  return cleaned.split(/[/?#]/)[0];
 }
 
 export async function fetchVkPosts(communityUrl: string, count = 20): Promise<ParsedPost[]> {

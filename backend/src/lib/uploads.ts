@@ -4,6 +4,8 @@ import { mkdirSync } from "node:fs";
 import type { Request, RequestHandler, Response } from "express";
 import { generateId } from "./tokens.js";
 
+export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+
 // Загруженные файлы раздаются по прямой ссылке с того же домена, что и сам
 // сервис. Если позволить положить туда .html или .svg, они выполнятся в
 // источнике сервиса и получат доступ к API от имени того, кто открыл ссылку.
@@ -44,8 +46,16 @@ export function createImageUpload(resolveDir: (req: Request) => string) {
       }
       cb(null, true);
     },
-    limits: { fileSize: 20 * 1024 * 1024 },
+    limits: { fileSize: MAX_UPLOAD_BYTES },
   });
+}
+
+// busboy декодирует заголовки multipart как latin1 — кириллица в имени файла
+// приходит побайтово верной, но прочитанной не той кодировкой. Имя не
+// украшение: оно попадает в промпт распаковки вместе с категорией референса,
+// и модель вместо «до_после.jpg» видит мусор.
+export function decodeOriginalFilename(originalname: string): string {
+  return Buffer.from(originalname, "latin1").toString("utf8");
 }
 
 export class UnsupportedFileTypeError extends Error {
@@ -61,6 +71,12 @@ export function handleUpload(middleware: RequestHandler): RequestHandler {
     middleware(req, res, (err: unknown) => {
       if (err instanceof UnsupportedFileTypeError) {
         res.status(415).json({ error: "unsupported_file_type", allowed: ALLOWED_UPLOAD_TYPES });
+        return;
+      }
+      // Снимок с современного телефона легко перешагивает лимит, так что этот
+      // путь достижим обычным клиентом, а не только при попытке навредить.
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        res.status(413).json({ error: "file_too_large", maxBytes: MAX_UPLOAD_BYTES });
         return;
       }
       if (err) {

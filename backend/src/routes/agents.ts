@@ -312,7 +312,7 @@ agentsRouter.post("/agents/copywriter", async (req, res) => {
     res.status(201).json({
       ...content,
       needsManualReview,
-      ...(needsManualReview ? { editorFeedback: review.documentMarkdown } : {}),
+      ...(needsManualReview && review ? { editorFeedback: review.documentMarkdown } : {}),
     });
     // Fire-and-forget — не блокирует ответ клиенту и не должен ронять его
     // при ошибке (см. resultsDelivery.ts: идемпотентно, сама решает, готов
@@ -506,7 +506,7 @@ agentsRouter.post("/agents/reels-writer", async (req, res) => {
     res.status(201).json({
       ...content,
       needsManualReview,
-      ...(needsManualReview ? { editorFeedback: review.documentMarkdown } : {}),
+      ...(needsManualReview && review ? { editorFeedback: review.documentMarkdown } : {}),
     });
     ensureResultsLinkSent(req.clientId!).catch((err) => console.error("[results] ensureResultsLinkSent failed:", err));
   } catch (err) {
@@ -685,6 +685,11 @@ agentsRouter.post("/agents/run-all", async (req, res) => {
   try {
     const result = await runFullPipeline(req.clientId!);
     res.json(result);
+    // Тот же вызов, что и после одиночной генерации поста или сценария: без
+    // него клиент, у которого весь конвейер прогнали разом, получал готовые
+    // тексты в базе и ни одной ссылки на результаты. Функция сама проверяет
+    // полноту и то, что ссылка ещё не создавалась.
+    ensureResultsLinkSent(req.clientId!).catch((err) => console.error("[results] ensureResultsLinkSent failed:", err));
   } catch (err) {
     console.error("[agents] run-all failed unexpectedly:", err);
     res.status(500).json({ error: "pipeline_failed" });

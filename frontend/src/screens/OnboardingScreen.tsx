@@ -85,6 +85,13 @@ export function OnboardingScreen() {
     const cleanOwn = ownLinks.filter((l) => l.url.trim().length > 0);
     const cleanCompetitor = competitorLinks.filter((l) => l.url.trim().length > 0);
 
+    // Дубль площадки бэкенд отклоняет: разбор аккаунта хранит посты по одной
+    // площадке, и второй канал той же соцсети потерялся бы. Проверяем здесь же,
+    // чтобы клиент увидел причину, а не общее «не получилось сохранить».
+    if (new Set(cleanOwn.map((l) => l.platform)).size !== cleanOwn.length) {
+      setValidationError("Укажите по одной ссылке на площадку: два аккаунта одной соцсети пока не поддерживаются.");
+      return;
+    }
     if (cleanCompetitor.length < 2) {
       setValidationError("Укажите ссылки минимум на 2 конкурентов — без них не получится найти рабочие форматы в нише.");
       return;

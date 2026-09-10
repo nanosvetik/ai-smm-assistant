@@ -2,10 +2,27 @@ import { runCopywriter, type Platform } from "./copywriter.js";
 import { runReelsWriter } from "./reelsWriter.js";
 import { runEditorInChief } from "./editorInChief.js";
 
+type Review = Awaited<ReturnType<typeof runEditorInChief>>;
+
 export interface ReviewedResult<T> {
   content: T;
-  review: Awaited<ReturnType<typeof runEditorInChief>>;
+  // null — проверка не состоялась (сбой вызова редактора), а не «замечаний
+  // нет»: такой текст помечается как требующий ручной проверки.
+  review: Review | null;
   needsManualReview: boolean;
+}
+
+// Текст к этому моменту уже сгенерирован, оплачен и сохранён. Если падает
+// именно проверка, отдавать наружу ошибку нельзя: клиент увидел бы неудачу, а
+// повторный запуск оплатил бы вторую генерацию того же поста. Честнее вернуть
+// готовый текст с пометкой, что редактор его не смотрел.
+async function safeReview(run: () => Promise<Review>): Promise<Review | null> {
+  try {
+    return await run();
+  } catch (err) {
+    console.error("[editor-in-chief] review failed, returning content unreviewed:", err);
+    return null;
+  }
 }
 
 // Редактор не переписывает текст сам: при вердикте «нужна правка» его
@@ -20,26 +37,26 @@ export async function runReviewedCopywriter(
   day = 1
 ): Promise<ReviewedResult<Awaited<ReturnType<typeof runCopywriter>>>> {
   let content = await runCopywriter(clientId, platform, day);
-  let review = await runEditorInChief(clientId, "copywriter", platform);
+  let review = await safeReview(() => runEditorInChief(clientId, "copywriter", platform));
 
-  if (review.verdict === "needs_revision") {
+  if (review?.verdict === "needs_revision") {
     content = await runCopywriter(clientId, platform, day, review.documentMarkdown);
-    review = await runEditorInChief(clientId, "copywriter", platform);
+    review = await safeReview(() => runEditorInChief(clientId, "copywriter", platform));
   }
 
-  return { content, review, needsManualReview: review.verdict === "needs_revision" };
+  return { content, review, needsManualReview: review === null || review.verdict === "needs_revision" };
 }
 
 export async function runReviewedReelsWriter(
   clientId: string
 ): Promise<ReviewedResult<Awaited<ReturnType<typeof runReelsWriter>>>> {
   let content = await runReelsWriter(clientId);
-  let review = await runEditorInChief(clientId, "reels", "vk");
+  let review = await safeReview(() => runEditorInChief(clientId, "reels", "vk"));
 
-  if (review.verdict === "needs_revision") {
+  if (review?.verdict === "needs_revision") {
     content = await runReelsWriter(clientId, review.documentMarkdown);
-    review = await runEditorInChief(clientId, "reels", "vk");
+    review = await safeReview(() => runEditorInChief(clientId, "reels", "vk"));
   }
 
-  return { content, review, needsManualReview: review.verdict === "needs_revision" };
+  return { content, review, needsManualReview: review === null || review.verdict === "needs_revision" };
 }

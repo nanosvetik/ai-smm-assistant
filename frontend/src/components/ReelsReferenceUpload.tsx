@@ -39,6 +39,8 @@ export function ReelsReferenceUpload() {
       // здесь значит отправить человека по кругу.
       if (err instanceof ApiError && err.status === 415) {
         setError("Такой формат не подойдёт. Нужен JPG, PNG, WEBP или GIF.");
+      } else if (err instanceof ApiError && err.status === 413) {
+        setError("Файл больше 20 МБ. Уменьшите фото или выберите другое.");
       } else {
         setError("Не удалось загрузить файл. Попробуйте ещё раз.");
       }
