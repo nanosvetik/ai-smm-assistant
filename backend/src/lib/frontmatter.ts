@@ -33,26 +33,38 @@ function quoteColonValues(yamlContent: string): string {
   });
 }
 
+// Поля, которые есть у каждого агента (prompts/*.md) — по ним настоящий
+// frontmatter отличается от текста, случайно оказавшегося между двумя "---".
+const FRONTMATTER_KEYS = ["тип", "статус", "создан", "обновлён", "платформа"];
+
 function tryParse(content: string): Record<string, unknown> | null {
-  try {
-    const parsed = load(content);
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
-  } catch {
+  for (const candidate of [content, quoteColonValues(content)]) {
     try {
-      const parsed = load(quoteColonValues(content));
-      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+      const parsed = load(candidate);
+      // Массивы отсеиваются намеренно: YAML разбирает обычный маркированный
+      // список как массив, и перечисление между двумя markdown-разделителями
+      // иначе принимается за frontmatter.
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
     } catch {
-      return null;
+      // пробуем следующий вариант разбора
     }
   }
+  return null;
 }
 
 export function parseFrontmatter(document: string): Record<string, unknown> | null {
+  let fallback: Record<string, unknown> | null = null;
+
   for (const { start, end } of findFrontmatterBlocks(document)) {
     const parsed = tryParse(document.slice(start, end));
-    if (parsed) return parsed;
+    if (!parsed) continue;
+    if (FRONTMATTER_KEYS.some((key) => key in parsed)) return parsed;
+    fallback ??= parsed;
   }
-  return null;
+
+  return fallback;
 }
 
 // Используется агентами, которые сами вычисляют статус (не доверяя
@@ -62,7 +74,10 @@ export function replaceFrontmatterField(document: string, field: string, value: 
   for (const { start, end } of findFrontmatterBlocks(document)) {
     const content = document.slice(start, end);
     if (!tryParse(content)) continue;
-    const fieldPattern = new RegExp(`^${field}:\\s*\\S+`, "m");
+    // Значение ограничено своей строкой: с "\s*" пустое поле ("статус:" без
+    // значения) утягивало перевод строки, и замена затирала следующее поле
+    // frontmatter.
+    const fieldPattern = new RegExp(`^${field}:[ \\t]*[^\\n]*$`, "m");
     if (!fieldPattern.test(content)) continue;
     return document.slice(0, start) + content.replace(fieldPattern, `${field}: ${value}`) + document.slice(end);
   }

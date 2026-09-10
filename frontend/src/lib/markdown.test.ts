@@ -40,4 +40,23 @@ describe("stripFrontmatter", () => {
     expect(stripFrontmatter(doc)).toContain("Первая часть.");
     expect(stripFrontmatter(doc)).toContain("Вторая часть.");
   });
+
+  it("не съедает список между двумя разделителями", () => {
+    // YAML разбирает маркированный список как массив, а массив раньше
+    // считался разобранным frontmatter — вместе с разделителями из документа
+    // молча пропадали сами пункты.
+    const doc = ["# Заголовок", "", "Вступление.", "", "---", "", "- Пункт один", "- Пункт два", "", "---", "", "Заключение."].join("\n");
+    const result = stripFrontmatter(doc);
+    expect(result).toContain("- Пункт один");
+    expect(result).toContain("- Пункт два");
+    expect(result).toContain("Заключение.");
+  });
+
+  it("срезает настоящий блок, даже если список идёт раньше него", () => {
+    const doc = ["---", "- Пункт", "---", "", "---", "тип: пост", "статус: боевой", "---", "", "Текст поста."].join("\n");
+    const result = stripFrontmatter(doc);
+    expect(result).not.toContain("статус:");
+    expect(result).toContain("- Пункт");
+    expect(result).toContain("Текст поста.");
+  });
 });

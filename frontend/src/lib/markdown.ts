@@ -19,32 +19,48 @@ function quoteColonValues(yamlContent: string): string {
   });
 }
 
-function isParsableFrontmatter(content: string): boolean {
-  try {
-    const parsed = load(content);
-    if (parsed && typeof parsed === "object") return true;
-  } catch {
-    // падаем ниже на fallback с кавычками
+// Поля, которые есть у каждого агента (prompts/*.md): по ним настоящий
+// frontmatter отличается от куска текста, случайно оказавшегося между двумя
+// "---".
+const FRONTMATTER_KEYS = ["тип", "статус", "создан", "обновлён", "платформа"];
+
+function parseBlock(content: string): Record<string, unknown> | null {
+  for (const candidate of [content, quoteColonValues(content)]) {
+    try {
+      const parsed = load(candidate);
+      // Массив исключён намеренно: YAML разбирает обычный маркированный
+      // список как массив, и без этой проверки перечисление между двумя
+      // markdown-разделителями принималось за frontmatter и вырезалось
+      // вместе с ними — из документа молча пропадал кусок текста.
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // пробуем следующий вариант разбора
+    }
   }
-  try {
-    const parsed = load(quoteColonValues(content));
-    return Boolean(parsed && typeof parsed === "object");
-  } catch {
-    return false;
-  }
+  return null;
 }
 
 function findFrontmatterBlock(document: string): { start: number; end: number } | null {
   const dashLines = [...document.matchAll(/^---[ \t]*$/gm)];
+  // Блок с узнаваемыми полями выигрывает у просто разбираемого: модель иногда
+  // ставит markdown-разделитель до настоящего frontmatter.
+  let fallback: { start: number; end: number } | null = null;
+
   for (let i = 0; i < dashLines.length - 1; i++) {
     const start = dashLines[i].index!;
     const contentStart = start + dashLines[i][0].length + 1;
     const end = dashLines[i + 1].index!;
-    if (isParsableFrontmatter(document.slice(contentStart, end))) {
-      return { start, end: end + dashLines[i + 1][0].length };
-    }
+    const parsed = parseBlock(document.slice(contentStart, end));
+    if (!parsed) continue;
+
+    const block = { start, end: end + dashLines[i + 1][0].length };
+    if (FRONTMATTER_KEYS.some((key) => key in parsed)) return block;
+    fallback ??= block;
   }
-  return null;
+
+  return fallback;
 }
 
 // Frontmatter не нужен читателю — статус и так показан отдельно из колонки
