@@ -42,7 +42,7 @@
 ### Распаковка
 
 - **`audience-unpacker`** (Claude Sonnet 5) — на данных онбординга. → `audience_profiles` (статус/b2b/ширина ниши/сегменты).
-- **`expertise-unpacker`** (Claude Sonnet 5) — плюс последняя версия `audience_profiles` фоновым контекстом («для кого метод», не цель задачи) и `expertPath` отдельной секцией «Путь эксперта». → `expertise_profiles`. Статусы только `боевой`/`черновик-рамка`.
+- **`expertise-unpacker`** (Claude Sonnet 5) — плюс последняя версия `audience_profiles` фоновым контекстом («для кого метод», не цель задачи) и `expertPath` отдельной секцией «Путь эксперта». Получает **тексты постов своих площадок** (20 на площадку, `buildPostsContext` из `lib/postsContext.ts`): анкета даёт три коротких ответа, а метод виден в том, как человек пишет о своём деле. Недоступная площадка этап не роняет — сбой парсера уходит отдельной секцией «не удалось прочитать», чтобы модель отличала «постов нет» от «посты не дошли». → `expertise_profiles`. Статусы только `боевой`/`черновик-рамка`.
 
 ### Анализ
 
@@ -109,6 +109,7 @@
 - `lib/uploads.ts` — общий multer-обвяз: белый список типов, расширение назначается сервисом, `MAX_UPLOAD_BYTES` (20 МБ), `handleUpload` конвертирует отказы в 415 и 413, `decodeOriginalFilename` чинит latin1-имена из multipart.
 - `lib/frontmatter.ts` — `parseFrontmatter` (устойчивый перебор пар `---`) и `replaceFrontmatterField(document, field, value)` поверх той же логики. Использовать общую функцию, не локальные regex-копии. Блок опознаётся по полям агентов (`тип`, `статус`, `создан`, `обновлён`, `платформа`); массивы отбрасываются — иначе маркированный список между двумя markdown-разделителями сходил за frontmatter. Зеркальная логика на фронтенде — `frontend/src/lib/markdown.ts`, менять обе.
 - `lib/promptBlock.ts` — `extractPromptBlock` для ` ```text `-блоков (картинки и видео).
+- `lib/postsContext.ts` — `buildPostsContext`: общий формат блока постов для сообщения модели. Используют `account-analyzer` (строит на них стиль) и `expertise-unpacker` (вытаскивает метод). Формат общий намеренно — промпты обоих написаны под этот вид блоков, и расхождение сломало бы разбор.
 - `lib/planData.ts` — `parsePlanData` для json-блока контент-плана.
 - `lib/email.ts` — обёртка над HTTP API Unisender Go (не SMTP, см. `docs/decision-log.md`) + `formatExpiryDateTime`/`formatExpiryDate` (человекочитаемые сроки через `toLocaleString("ru-RU")`, не `toISOString`).
 - `lib/tokens.ts` — `SESSION_TTL_MS` и генерация токенов.

@@ -5,10 +5,13 @@ import { audienceProfiles, expertiseProfiles, onboardingProfiles, referenceFiles
 import { chatCompletion } from "../lib/openrouter.js";
 import { parseFrontmatter } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
+import { fetchPosts, type ParsedPost } from "../parsers/index.js";
+import { buildPostsContext } from "../lib/postsContext.js";
 import { promptPath } from "../lib/paths.js";
 
 const MODEL = "anthropic/claude-sonnet-5";
 const PROMPT_PATH = promptPath("expertise.md");
+const POSTS_PER_PLATFORM = 20;
 
 const STATUSES = ["боевой", "черновик-рамка"] as const;
 const METHOD_STRUCTURES = ["линейная", "цикл", "слои", "фазы"] as const;
@@ -23,7 +26,8 @@ function buildOnboardingContext(
   questionnaire: typeof onboardingProfiles.$inferSelect,
   links: (typeof socialLinks.$inferSelect)[],
   references: (typeof referenceFiles.$inferSelect)[],
-  latestAudienceProfile: typeof audienceProfiles.$inferSelect | undefined
+  latestAudienceProfile: typeof audienceProfiles.$inferSelect | undefined,
+  postsContext: string
 ): string {
   const ownLinks = links.filter((l) => l.role === "own");
 
@@ -49,8 +53,10 @@ ${questionnaire.mainPrinciple}
 ## Что эксперт точно не делает в контенте
 ${questionnaire.contentTaboos}
 
-## Свои соцсети (материалы про эксперта)
+## Адреса своих площадок
 ${formatLinks(ownLinks)}
+
+${postsContext}
 
 ## Медиа-референсы (drag-and-drop с онбординга)
 ${formatReferences()}
@@ -72,6 +78,31 @@ export async function runExpertiseUnpacker(clientId: string) {
 
   const links = await db.select().from(socialLinks).where(eq(socialLinks.clientId, clientId));
   const references = await db.select().from(referenceFiles).where(eq(referenceFiles.clientId, clientId));
+
+  // Тексты клиента — главный материал для распаковки метода: анкета даёт три
+  // коротких ответа, а метод виден в том, как человек изо дня в день пишет о
+  // своём деле. Недоступная площадка не должна ронять весь этап, поэтому сбой
+  // парсера превращается в явную строку в контексте: модель должна видеть
+  // разницу между «постов нет» и «посты не удалось прочитать».
+  const ownLinks = links.filter((l) => l.role === "own");
+  const postsByPlatform: Record<string, ParsedPost[]> = {};
+  const unreadable: string[] = [];
+  for (const link of ownLinks) {
+    try {
+      postsByPlatform[link.platform] = await fetchPosts(link.platform, link.url, POSTS_PER_PLATFORM);
+    } catch (err) {
+      unreadable.push(`${link.platform} (${link.url}): ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  const postsContext = [
+    buildPostsContext(postsByPlatform, "## Тексты клиента с его площадок"),
+    unreadable.length > 0
+      ? `### Площадки, которые не удалось прочитать\n${unreadable.map((u) => `- ${u}`).join("\n")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const [latestAudienceProfile] = await db
     .select()
     .from(audienceProfiles)
@@ -80,7 +111,13 @@ export async function runExpertiseUnpacker(clientId: string) {
     .limit(1);
 
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
-  const userMessage = buildOnboardingContext(questionnaire, links, references, latestAudienceProfile);
+  const userMessage = buildOnboardingContext(
+    questionnaire,
+    links,
+    references,
+    latestAudienceProfile,
+    postsContext
+  );
 
   const document = await chatCompletion(MODEL, [
     { role: "system", content: systemPrompt },

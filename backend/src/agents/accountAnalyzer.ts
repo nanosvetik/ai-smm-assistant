@@ -6,6 +6,7 @@ import { chatCompletion } from "../lib/openrouter.js";
 import { parseFrontmatter } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { fetchPosts, type ParsedPost } from "../parsers/index.js";
+import { buildPostsContext } from "../lib/postsContext.js";
 import { promptPath } from "../lib/paths.js";
 
 const MODEL = "deepseek/deepseek-v4-flash";
@@ -18,19 +19,6 @@ export class OwnLinksMissingError extends Error {
   constructor() {
     super("own_links_missing");
   }
-}
-
-function formatPosts(platform: string, posts: ParsedPost[]): string {
-  if (posts.length === 0) return `### ${platform}\nПосты не найдены.`;
-  const body = posts
-    .map((p) => `- [${p.date.toISOString().slice(0, 10)}] (${p.url})\n${p.text}`)
-    .join("\n\n");
-  return `### ${platform}\n${body}`;
-}
-
-function buildPostsContext(postsByPlatform: Record<string, ParsedPost[]>): string {
-  const sections = Object.entries(postsByPlatform).map(([platform, posts]) => formatPosts(platform, posts));
-  return `# Посты эксперта\n\n${sections.join("\n\n")}`;
 }
 
 export async function runAccountAnalyzer(clientId: string) {
