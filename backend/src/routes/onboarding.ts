@@ -7,12 +7,12 @@ import { db } from "../db/index.js";
 import { accessLinks, socialLinks, onboardingProfiles, referenceFiles } from "../db/schema.js";
 import { generateId } from "../lib/tokens.js";
 import { createImageUpload, handleUpload } from "../lib/uploads.js";
+import { UPLOAD_ROOT } from "../lib/paths.js";
 
 export const onboardingRouter = Router();
 onboardingRouter.use(requireSession);
 
 const REFERENCE_CATEGORIES = ["before_after", "workspace", "showcase", "products", "process"] as const;
-const UPLOAD_ROOT = process.env.UPLOAD_DIR ?? path.join(process.cwd(), "..", "uploads");
 
 const linkSchema = z.object({
   platform: z.enum(["telegram", "vk"]),

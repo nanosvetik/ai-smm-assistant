@@ -5,8 +5,7 @@ import { generatedVideos, reelsReferenceFiles, reelsVideoPrompts } from "../db/s
 import { extractPromptBlock } from "../lib/promptBlock.js";
 import { generateVideoFile } from "../lib/videoGeneration.js";
 import { generateId } from "../lib/tokens.js";
-
-const UPLOAD_ROOT = process.env.UPLOAD_DIR ?? path.join(process.cwd(), "..", "uploads");
+import { UPLOAD_ROOT } from "../lib/paths.js";
 
 export class PrerequisitesMissingError extends Error {
   constructor(public missing: string[]) {

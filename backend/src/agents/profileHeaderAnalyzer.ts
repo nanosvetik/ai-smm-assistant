@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { profileHeaderProfiles, socialLinks } from "../db/schema.js";
@@ -7,6 +6,7 @@ import { chatCompletion, type ChatMessage, type ImageContentBlock, type TextCont
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { fetchProfileHeader } from "../parsers/index.js";
+import { promptPath } from "../lib/paths.js";
 
 // Claude Sonnet 5 — тот же выбор и по той же причине, что и у
 // visual-style-analyzer (см. CLAUDE.md, "Известные грабли"): vision-задача,
@@ -15,7 +15,7 @@ import { fetchProfileHeader } from "../parsers/index.js";
 // проверена и не требует новых privacy-разрешений в OpenRouter — незачем
 // заново открывать этот вопрос ради одной задачи.
 const MODEL = "anthropic/claude-sonnet-5";
-const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "profile-header-analyzer.md");
+const PROMPT_PATH = promptPath("profile-header-analyzer.md");
 
 const STATUSES = ["боевой", "черновик-скелет"] as const;
 

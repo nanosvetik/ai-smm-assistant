@@ -7,11 +7,10 @@ import { db } from "../db/index.js";
 import { reelsReferenceFiles } from "../db/schema.js";
 import { generateId } from "../lib/tokens.js";
 import { createImageUpload, handleUpload } from "../lib/uploads.js";
+import { UPLOAD_ROOT } from "../lib/paths.js";
 
 export const reelsReferencesRouter = Router();
 reelsReferencesRouter.use(requireSession);
-
-const UPLOAD_ROOT = process.env.UPLOAD_DIR ?? path.join(process.cwd(), "..", "uploads");
 
 const upload = createImageUpload((req) => path.join(UPLOAD_ROOT, req.clientId!, "reels"));
 

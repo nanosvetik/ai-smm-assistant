@@ -1,6 +1,10 @@
+import "../lib/loadEnv.js";
 import { eq } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { accessRequests } from "../db/schema.js";
+
+// Как и в остальных admin-скриптах: база открывается после загрузки .env,
+// иначе DB_PATH из окружения не учтён и очередь заявок выглядит пустой.
+const { db } = await import("../db/index.js");
+const { accessRequests } = await import("../db/schema.js");
 
 const pending = await db.select().from(accessRequests).where(eq(accessRequests.status, "pending"));
 

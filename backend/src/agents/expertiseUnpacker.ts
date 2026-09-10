@@ -1,14 +1,14 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { audienceProfiles, expertiseProfiles, onboardingProfiles, referenceFiles, socialLinks } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { parseFrontmatter } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
+import { promptPath } from "../lib/paths.js";
 
 const MODEL = "anthropic/claude-sonnet-5";
-const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "expertise.md");
+const PROMPT_PATH = promptPath("expertise.md");
 
 const STATUSES = ["боевой", "черновик-рамка"] as const;
 const METHOD_STRUCTURES = ["линейная", "цикл", "слои", "фазы"] as const;

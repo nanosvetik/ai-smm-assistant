@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import {
@@ -13,12 +12,13 @@ import {
 import { chatCompletion } from "../lib/openrouter.js";
 import { parseFrontmatter } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
+import { promptPath } from "../lib/paths.js";
 
 // Задача качественная — поймать то, что автор пропустил, — поэтому модель
 // сильнее, чем у рутинных этапов, но не самая дорогая: проверки текста здесь
 // достаточно.
 const MODEL = "deepseek/deepseek-v4-pro";
-const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "editor-in-chief.md");
+const PROMPT_PATH = promptPath("editor-in-chief.md");
 
 export type ContentType = "copywriter" | "reels";
 export type Platform = "telegram" | "vk";

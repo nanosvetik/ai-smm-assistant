@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { proxiedFetch } from "./outboundProxy.js";
+import { WORKSPACE_ROOT } from "./paths.js";
 
 const VIDEOS_URL = "https://openrouter.ai/api/v1/videos";
 
@@ -19,7 +20,7 @@ const ASPECT_RATIO = "9:16";
 const POLL_INTERVAL_MS = 5000;
 const MAX_POLL_ATTEMPTS = 40;
 
-const REELS_DIR = path.join(process.cwd(), "..", "workspace", "07-reels");
+const REELS_DIR = path.join(WORKSPACE_ROOT, "07-reels");
 
 const MIME_BY_EXT: Record<string, string> = {
   ".jpg": "image/jpeg",

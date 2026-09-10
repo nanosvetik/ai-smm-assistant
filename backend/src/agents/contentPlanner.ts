@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { competitorAnalysisProfiles, contentPlans, packagingProfiles, socialLinks } from "../db/schema.js";
@@ -7,9 +6,10 @@ import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
 import { parsePlanData } from "../lib/planData.js";
 import { generateId } from "../lib/tokens.js";
+import { promptPath } from "../lib/paths.js";
 
 const MODEL = "deepseek/deepseek-v4-pro";
-const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "content-planner.md");
+const PROMPT_PATH = promptPath("content-planner.md");
 
 const STATUSES = ["боевой", "черновик-рамка", "черновик-скелет"] as const;
 type Status = (typeof STATUSES)[number];

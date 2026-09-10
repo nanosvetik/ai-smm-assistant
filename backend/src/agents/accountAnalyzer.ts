@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accountStyleProfiles, socialLinks } from "../db/schema.js";
@@ -7,9 +6,10 @@ import { chatCompletion } from "../lib/openrouter.js";
 import { parseFrontmatter } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { fetchPosts, type ParsedPost } from "../parsers/index.js";
+import { promptPath } from "../lib/paths.js";
 
 const MODEL = "deepseek/deepseek-v4-flash";
-const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "account-analyzer.md");
+const PROMPT_PATH = promptPath("account-analyzer.md");
 const POSTS_PER_PLATFORM = 20;
 
 const STATUSES = ["боевой", "черновик-скелет"] as const;

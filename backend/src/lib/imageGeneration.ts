@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { proxiedFetch } from "./outboundProxy.js";
+import { WORKSPACE_ROOT } from "./paths.js";
 
 const IMAGES_URL = "https://openrouter.ai/api/v1/images";
 
@@ -14,7 +15,7 @@ const IMAGE_MODEL_FALLBACK = "black-forest-labs/flux.2-max";
 // корня проекта) — реализация независимая (см. imageGenerator.ts на прод-путь
 // вызова, smm-mcp — инструмент разработки для Claude Code, не HTTP-сервис),
 // но артефакты складываются в то же место, что уже описано в CLAUDE.md.
-const IMAGES_DIR = path.join(process.cwd(), "..", "workspace", "06-images");
+const IMAGES_DIR = path.join(WORKSPACE_ROOT, "06-images");
 
 const MEDIA_EXT: Record<string, string> = {
   "image/jpeg": "jpg",

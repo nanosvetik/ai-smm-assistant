@@ -1,3 +1,4 @@
+import "../lib/loadEnv.js";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
@@ -6,7 +7,11 @@ import { mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), "..", "data", "app.sqlite");
+
+// Динамически — чтобы путь к базе вычислялся уже с учётом .env: иначе миграции
+// накатились бы на файл, отличный от того, с которым работает сервер.
+const { DB_PATH } = await import("../lib/paths.js");
+
 mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const sqlite = new Database(DB_PATH);

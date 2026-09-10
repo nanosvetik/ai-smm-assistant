@@ -7,6 +7,7 @@ import { referenceFiles, visualStyleProfiles } from "../db/schema.js";
 import { chatCompletion, type ChatMessage, type ImageContentBlock, type TextContentBlock } from "../lib/openrouter.js";
 import { parseFrontmatter, replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
+import { promptPath, UPLOAD_ROOT } from "../lib/paths.js";
 
 // Здесь модель дороже, чем у текстовых агентов, и на то две причины.
 // Референсы клиента — снимки его кабинета, работ, «до и после» — не публичный
@@ -15,8 +16,7 @@ import { generateId } from "../lib/tokens.js";
 // фотографий неприемлемо. Операция разовая на клиента, не на каждый пост,
 // поэтому цена терпима.
 const MODEL = "anthropic/claude-sonnet-5";
-const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "visual-style-analyzer.md");
-const UPLOAD_ROOT = process.env.UPLOAD_DIR ?? path.join(process.cwd(), "..", "uploads");
+const PROMPT_PATH = promptPath("visual-style-analyzer.md");
 
 const STATUSES = ["боевой", "черновик-скелет"] as const;
 // Ниже — не строим уверенный "фирменный стиль" на случайном кадре

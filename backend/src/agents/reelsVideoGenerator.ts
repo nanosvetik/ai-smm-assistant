@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { reelsReferenceFiles, reelsScripts, reelsVideoPrompts } from "../db/schema.js";
@@ -7,11 +6,12 @@ import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField } from "../lib/frontmatter.js";
 import { ensureVisualStyleProfile } from "./visualStyleAnalyzer.js";
 import { generateId } from "../lib/tokens.js";
+import { promptPath } from "../lib/paths.js";
 
 // deepseek-v4-flash — вход тут текст (сценарий), не изображения, vision не
 // нужен, тот же выбор, что и у visual-generator.
 const MODEL = "deepseek/deepseek-v4-flash";
-const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "reels-video-generator.md");
+const PROMPT_PATH = promptPath("reels-video-generator.md");
 
 const STATUSES = ["боевой", "черновик-рамка", "черновик-скелет"] as const;
 type Status = (typeof STATUSES)[number];

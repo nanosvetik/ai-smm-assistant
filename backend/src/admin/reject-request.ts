@@ -1,10 +1,12 @@
-import { rejectRequest } from "./approval.js";
+import "../lib/loadEnv.js";
 
 const requestId = process.argv[2];
 if (!requestId) {
   console.error("Usage: npm run admin:reject -- <access_request_id>");
   process.exit(1);
 }
+
+const { rejectRequest } = await import("./approval.js");
 
 try {
   await rejectRequest(requestId);

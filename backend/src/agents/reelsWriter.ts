@@ -1,16 +1,16 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { contentPlans, packagingProfiles, referenceFiles, reelsScripts } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { parseFrontmatter, replaceFrontmatterField } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
+import { promptPath } from "../lib/paths.js";
 
 // Pro, а не Flash: раскадровка и хук, который должен сработать за три
 // секунды, требуют более сильной творческой части, чем обычный пост.
 const MODEL = "deepseek/deepseek-v4-pro";
-const PROMPT_PATH = path.join(process.cwd(), "..", "prompts", "reels-writer.md");
+const PROMPT_PATH = promptPath("reels-writer.md");
 
 const STATUSES = ["боевой", "черновик-рамка", "черновик-скелет"] as const;
 type Status = (typeof STATUSES)[number];
