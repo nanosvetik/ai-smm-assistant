@@ -1,0 +1,51 @@
+# Служба боевого сервера: HTTP API и телеграм-бот оператора (один процесс —
+# бот работает через long polling внутри того же приложения).
+# На сервере файл лежит в /etc/systemd/system/smm-assistant.service.
+#
+# Установка:
+#   systemctl daemon-reload && systemctl enable --now smm-assistant
+
+[Unit]
+Description=Нейро-СММ ассистент «Своими словами»
+Documentation=https://github.com/nanosvetik/ai-smm-assistant
+# network-online, а не network: приложению при старте нужен работающий выход
+# наружу, а не просто поднятый интерфейс.
+After=network-online.target
+Wants=network-online.target
+# Если падение повторяется, перезапуск не должен превращаться в бесконечный
+# цикл: пять попыток за минуту, дальше служба останавливается и это видно.
+# Оба параметра живут в [Unit], а не рядом с Restart= в [Service], — иначе
+# systemd их молча игнорирует.
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+[Service]
+Type=simple
+User=smm
+Group=smm
+WorkingDirectory=/opt/ai-smm-assistant
+ExecStart=/usr/bin/node backend/dist/index.js
+
+# Переменные читает само приложение из .env в корне проекта (lib/loadEnv.ts),
+# поэтому EnvironmentFile здесь не нужен: иначе значения задавались бы в двух
+# местах и расходились.
+
+Restart=always
+RestartSec=5
+
+# Ограничения на случай уязвимости в приложении: пользователь без прав
+# администратора — первый слой, эти правила — второй. Файловая система видна
+# только для чтения, кроме трёх каталогов данных.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/ai-smm-assistant/data /opt/ai-smm-assistant/uploads /opt/ai-smm-assistant/workspace
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
