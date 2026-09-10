@@ -12,7 +12,6 @@ import {
 import { STAGES, type StageConfig } from "../lib/stages";
 import { buildStageProgress, isStageDone, type StageResult } from "../lib/stageProgress";
 import { AppHeader } from "../components/AppHeader";
-import { CompletionBanner } from "../components/CompletionBanner";
 import { Sidebar, type StageProgress } from "../components/Sidebar";
 import { StagePanel } from "../components/StagePanel";
 import "./DashboardScreen.css";
@@ -201,11 +200,6 @@ export function DashboardScreen() {
   return (
     <>
       <AppHeader />
-      {resultsLink && (
-        <div className="dashboard-completion">
-          <CompletionBanner url={resultsLink.url} />
-        </div>
-      )}
       <div className="dashboard-screen">
         <Sidebar
           stages={visibleStages}
@@ -221,6 +215,7 @@ export function DashboardScreen() {
           resultUnknown={failedStages.has(activeStage.key)}
           secondaryResult={secondaryResults[activeStage.key] ?? null}
           onRun={(platform) => handleRun(activeStage, platform)}
+          resultsLink={resultsLink}
         />
       </div>
     </>

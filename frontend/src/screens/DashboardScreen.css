@@ -15,21 +15,6 @@
   }
 }
 
-/* Блок «всё готово» стоит над колонками, а не внутри панели этапа: он про
-   работу целиком, и его не должно уносить прокруткой конкретного документа.
-   Ширина и поля повторяют .dashboard-screen, чтобы края совпадали. */
-.dashboard-completion {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 40px 24px 0;
-}
-
-@media (max-width: 760px) {
-  .dashboard-completion {
-    padding: 24px 16px 0;
-  }
-}
-
 .dashboard-loading {
   color: var(--color-muted);
   padding: 40px 24px;

@@ -1,13 +1,14 @@
 import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ApiError, type AgentResult, type Platform } from "../lib/api";
+import { ApiError, type AgentResult, type Platform, type ResultsLink } from "../lib/api";
 import { PLATFORM_LABELS, describeMissing, describePermanentError, type StageConfig } from "../lib/stages";
 import { stripFrontmatter } from "../lib/markdown";
 import { parseContentPlanData } from "../lib/planData";
 import { copyText } from "../lib/clipboard";
 import { downloadBlob } from "../lib/download";
 import { Button } from "./Button";
+import { CompletionBanner } from "./CompletionBanner";
 import { ContentPlanGrid } from "./ContentPlanGrid";
 import { ImageGenerationBlock } from "./ImageGenerationBlock";
 import { ReelsReferenceUpload } from "./ReelsReferenceUpload";
@@ -103,6 +104,9 @@ interface StagePanelProps {
   resultUnknown?: boolean;
   secondaryResult?: AgentResult | null;
   onRun: (platform?: Platform) => Promise<void>;
+  // Итог всей работы, а не этого этапа: показывается в конце любого открытого
+  // документа, как только демо-контент собран целиком.
+  resultsLink?: ResultsLink | null;
 }
 
 // showDraftNote: пояснение про черновик одинаково для всех площадок, поэтому
@@ -233,7 +237,15 @@ function SecondaryBlock({ label, result }: { label: string; result: AgentResult 
   );
 }
 
-export function StagePanel({ stage, platforms, result, resultUnknown, secondaryResult, onRun }: StagePanelProps) {
+export function StagePanel({
+  stage,
+  platforms,
+  result,
+  resultUnknown,
+  secondaryResult,
+  onRun,
+  resultsLink,
+}: StagePanelProps) {
   const emptyHint = `Пока не запускали — нажмите «Запустить» ниже, чтобы получить первый результат.`;
 
   return (
@@ -311,6 +323,8 @@ export function StagePanel({ stage, platforms, result, resultUnknown, secondaryR
       {stage.secondaryAgentSlug && (
         <SecondaryBlock label={stage.secondaryLabel ?? stage.secondaryAgentSlug} result={secondaryResult ?? null} />
       )}
+
+      {resultsLink && <CompletionBanner url={resultsLink.url} expiresAt={resultsLink.expiresAt} />}
     </div>
   );
 }
