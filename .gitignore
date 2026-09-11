@@ -47,5 +47,7 @@ Thumbs.db
 # Crash dumps from force-killed processes on Windows
 *.stackdump
 
-# Claude Code local settings (machine-specific, not shared)
-.claude/
+# Claude Code: локальные настройки машины не коммитим, а скилл проекта —
+# наоборот, часть репозитория: это точка входа для того, кто его склонировал.
+.claude/*
+!.claude/skills/
