@@ -36,8 +36,14 @@ async function handleUpdate(update: TelegramUpdate) {
     if (action === "approve") {
       const { request, link, expiresAt, delivered } = await approveRequest(requestId);
       await answerCallbackQuery(cb.id, "Одобрено");
+      // Ссылка печатается в обеих ветках, как и в CLI-скрипте одобрения.
+      // Успешная отправка означает только то, что письмо принял почтовый API:
+      // оно уже ложилось в «Спам», и тогда единственным рабочим экземпляром
+      // ссылки оказывался тот, что у оператора. Первая строка при этом разная —
+      // «ушло само» и «отправь руками» должны различаться с одного взгляда,
+      // иначе оператор перестанет замечать отказы доставки.
       const deliveryLine = delivered
-        ? `Ссылка отправлена клиенту на ${request.contactValue}.`
+        ? `Ссылка отправлена клиенту на ${request.contactValue}.\nКопия на случай, если письмо не дойдёт:\n${link}`
         : `Отправьте ссылку клиенту вручную (${request.contactValue}):\n${link}`;
       await editMessageText(
         cb.message.chat.id,
