@@ -2,7 +2,6 @@ import { runAudienceUnpacker } from "./audienceUnpacker.js";
 import { runExpertiseUnpacker } from "./expertiseUnpacker.js";
 import { runAccountAnalyzer } from "./accountAnalyzer.js";
 import { runCompetitorAnalyzer } from "./competitorAnalyzer.js";
-import { runVisualStyleAnalyzer } from "./visualStyleAnalyzer.js";
 import { runProfileHeaderAnalyzer } from "./profileHeaderAnalyzer.js";
 import { runAccountPackager } from "./accountPackager.js";
 import { runContentPlanner } from "./contentPlanner.js";
@@ -30,10 +29,15 @@ async function runStage<T>(fn: () => Promise<T>): Promise<StageResult<T>> {
   }
 }
 
-// Необязательные (visual-style-analyzer, profile-header-analyzer): их
-// отсутствие — обычное дело (нет референсов, нет own-ссылок и т.п.), не
-// повод останавливать весь прогон, downstream-агенты уже умеют работать
-// без них (см. accountPackager.ts, visualGenerator.ts).
+// Необязательные (profile-header-analyzer): их отсутствие — обычное дело
+// (нет own-ссылок, шапка не читается и т.п.), не повод останавливать весь
+// прогон, downstream-агенты уже умеют работать без них (см.
+// accountPackager.ts).
+//
+// visual-style-analyzer сюда не входит намеренно: он разбирает референсы
+// рилса, а их клиент загружает уже после того, как увидел готовый сценарий,
+// то есть заведомо позже конца этого конвейера. Его запускает consumer —
+// ensureVisualStyleProfile в reelsVideoGenerator.ts.
 async function runOptionalStage<T>(fn: () => Promise<T>): Promise<StageResult<T>> {
   try {
     return { status: "ok", result: await fn() };
@@ -51,7 +55,6 @@ export interface PipelineResult {
   expertiseUnpacker: StageResult<Awaited<ReturnType<typeof runExpertiseUnpacker>>>;
   accountAnalyzer: StageResult<Awaited<ReturnType<typeof runAccountAnalyzer>>>;
   competitorAnalyzer: StageResult<Awaited<ReturnType<typeof runCompetitorAnalyzer>>>;
-  visualStyleAnalyzer: StageResult<Awaited<ReturnType<typeof runVisualStyleAnalyzer>>>;
   profileHeaderAnalyzer: StageResult<Awaited<ReturnType<typeof runProfileHeaderAnalyzer>>>;
   accountPackager?: StageResult<Awaited<ReturnType<typeof runAccountPackager>>>;
   contentPlanner?: StageResult<Awaited<ReturnType<typeof runContentPlanner>>>;
@@ -73,7 +76,7 @@ export async function runFullPipeline(clientId: string): Promise<PipelineResult>
   // своей ветки (expertise точнее с готовым Профилем ЦА в фоне, см.
   // prompts/expertise.md, Шаг 0.3), но это не блокирует остальные четыре
   // независимых агента.
-  const [audienceExpertise, accountAnalyzerResult, competitorAnalyzerResult, visualStyleResult, profileHeaderResult] =
+  const [audienceExpertise, accountAnalyzerResult, competitorAnalyzerResult, profileHeaderResult] =
     await Promise.all([
       (async () => {
         const audience = await runStage(() => runAudienceUnpacker(clientId));
@@ -85,7 +88,6 @@ export async function runFullPipeline(clientId: string): Promise<PipelineResult>
       })(),
       runStage(() => runAccountAnalyzer(clientId)),
       runStage(() => runCompetitorAnalyzer(clientId)),
-      runOptionalStage(() => runVisualStyleAnalyzer(clientId)),
       runOptionalStage(() => runProfileHeaderAnalyzer(clientId)),
     ]);
 
@@ -94,7 +96,6 @@ export async function runFullPipeline(clientId: string): Promise<PipelineResult>
     expertiseUnpacker: audienceExpertise.expertise,
     accountAnalyzer: accountAnalyzerResult,
     competitorAnalyzer: competitorAnalyzerResult,
-    visualStyleAnalyzer: visualStyleResult,
     profileHeaderAnalyzer: profileHeaderResult,
   };
 

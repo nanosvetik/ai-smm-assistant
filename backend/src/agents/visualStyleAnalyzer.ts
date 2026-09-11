@@ -3,18 +3,18 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { referenceFiles, visualStyleProfiles } from "../db/schema.js";
-import { chatCompletion, type ChatMessage, type ImageContentBlock, type TextContentBlock } from "../lib/openrouter.js";
+import { reelsReferenceFiles, visualStyleProfiles } from "../db/schema.js";
+import { chatCompletion, type ChatMessage, type ImageContentBlock } from "../lib/openrouter.js";
 import { parseFrontmatter, replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
 import { promptPath, UPLOAD_ROOT } from "../lib/paths.js";
 
 // Здесь модель дороже, чем у текстовых агентов, и на то две причины.
-// Референсы клиента — снимки его кабинета, работ, «до и после» — не публичный
-// контент, в отличие от постов. А дешёвая экспериментальная альтернатива
-// требует разрешить провайдеру обучение на присланных данных, что для личных
-// фотографий неприемлемо. Операция разовая на клиента, не на каждый пост,
-// поэтому цена терпима.
+// Референсы клиента — его собственные фотографии, подобранные под готовый
+// сценарий рилса, не публичные посты. А дешёвая экспериментальная
+// альтернатива требует разрешить провайдеру обучение на входных данных, что
+// для личных фотографий неприемлемо. Операция редкая — один раз на набор
+// референсов, — поэтому цена терпима.
 const MODEL = "anthropic/claude-sonnet-5";
 const PROMPT_PATH = promptPath("visual-style-analyzer.md");
 
@@ -22,10 +22,9 @@ const STATUSES = ["боевой", "черновик-скелет"] as const;
 // Ниже — не строим уверенный "фирменный стиль" на случайном кадре
 // (см. prompts/visual-style-analyzer.md, "Вход").
 const MIN_REFERENCES_FOR_BOEVOY = 3;
-// На категорию — чтобы один заваленный фотографиями "process" не вытеснил
-// остальные категории из выборки; общий потолок бережёт токены/цену.
-const MAX_PER_CATEGORY = 2;
-const MAX_TOTAL_REFERENCES = 10;
+// Потолок бережёт токены и цену. Референсы собираются под один рилс, так что
+// десятка кадров с запасом хватает, чтобы увидеть общее.
+const MAX_REFERENCES = 10;
 
 const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -41,38 +40,47 @@ export class ReferencesMissingError extends Error {
   }
 }
 
-function selectReferences(references: (typeof referenceFiles.$inferSelect)[]) {
-  const byCategory = new Map<string, (typeof referenceFiles.$inferSelect)[]>();
-  for (const ref of references) {
-    const ext = path.extname(ref.filePath).toLowerCase();
-    if (!MIME_TYPES[ext]) continue;
-    const list = byCategory.get(ref.category) ?? [];
-    list.push(ref);
-    byCategory.set(ref.category, list);
-  }
-
-  const selected: (typeof referenceFiles.$inferSelect)[] = [];
-  for (const list of byCategory.values()) {
-    selected.push(...list.slice(0, MAX_PER_CATEGORY));
-  }
-  return selected.slice(0, MAX_TOTAL_REFERENCES);
+// Свежие первыми: если клиент загрузил больше потолка, разбираем последние
+// добавленные — они подобраны под тот же сценарий, что и кадр, который уйдёт
+// в видео первым (см. videoGenerator.ts).
+function loadReferences(clientId: string) {
+  return db
+    .select()
+    .from(reelsReferenceFiles)
+    .where(eq(reelsReferenceFiles.clientId, clientId))
+    .orderBy(desc(reelsReferenceFiles.createdAt));
 }
 
-async function buildImageBlock(ref: typeof referenceFiles.$inferSelect): Promise<(TextContentBlock | ImageContentBlock)[]> {
-  const ext = path.extname(ref.filePath).toLowerCase();
-  const mimeType = MIME_TYPES[ext];
+function selectReferences(references: (typeof reelsReferenceFiles.$inferSelect)[]) {
+  return references
+    .filter((ref) => MIME_TYPES[path.extname(ref.filePath).toLowerCase()])
+    .slice(0, MAX_REFERENCES);
+}
+
+async function buildImageBlock(ref: typeof reelsReferenceFiles.$inferSelect): Promise<ImageContentBlock> {
+  const mimeType = MIME_TYPES[path.extname(ref.filePath).toLowerCase()];
   const filePath = path.join(UPLOAD_ROOT, ...ref.filePath.split("/"));
   const bytes = await readFile(filePath);
-  const base64 = bytes.toString("base64");
-  return [
-    { type: "text", text: `Категория: ${ref.category}` },
-    { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
-  ];
+  return { type: "image_url", image_url: { url: `data:${mimeType};base64,${bytes.toString("base64")}` } };
+}
+
+// Набор референсов изменился с тех пор, как считали профиль. Прежняя версия
+// агента такой проверки не имела, и не зря: онбординговые референсы клиент
+// загружал один раз и больше не трогал. Референсы рилса живут иначе — их
+// добавляют и удаляют прямо перед генерацией видео, уже глядя на сценарий.
+// Сохранённый профиль описывал бы стиль фотографий, которых у клиента может
+// уже не быть.
+export function isProfileOutdated(
+  profile: { referencesAnalyzed: number; createdAt: Date } | undefined,
+  references: { createdAt: Date }[]
+): boolean {
+  if (!profile) return true;
+  if (profile.referencesAnalyzed !== references.length) return true;
+  return references.some((ref) => ref.createdAt > profile.createdAt);
 }
 
 export async function runVisualStyleAnalyzer(clientId: string) {
-  const allReferences = await db.select().from(referenceFiles).where(eq(referenceFiles.clientId, clientId));
-  const selected = selectReferences(allReferences);
+  const selected = selectReferences(await loadReferences(clientId));
   if (selected.length === 0) {
     throw new ReferencesMissingError();
   }
@@ -84,7 +92,7 @@ export async function runVisualStyleAnalyzer(clientId: string) {
     role: "user",
     content: [
       { type: "text", text: `Референсов на входе: ${selected.length}. Разбери визуальный стиль по шагам промпта.` },
-      ...imageBlocks.flat(),
+      ...imageBlocks,
     ],
   };
 
@@ -104,8 +112,6 @@ export async function runVisualStyleAnalyzer(clientId: string) {
     selected.length >= MIN_REFERENCES_FOR_BOEVOY ? modelStatus : "черновик-скелет";
   const document = replaceFrontmatterField(rawDocument, "статус", status);
 
-  const categories = [...new Set(selected.map((r) => r.category))];
-
   const [latest] = await db
     .select({ version: visualStyleProfiles.version })
     .from(visualStyleProfiles)
@@ -122,7 +128,6 @@ export async function runVisualStyleAnalyzer(clientId: string) {
     version: nextVersion,
     status,
     referencesAnalyzed: selected.length,
-    categories: JSON.stringify(categories),
     documentMarkdown: stampFrontmatterDates(document),
     createdAt: now,
   });
@@ -131,28 +136,28 @@ export async function runVisualStyleAnalyzer(clientId: string) {
   return row;
 }
 
-// Точечное решение открытого вопроса «visual-style-analyzer никогда не
-// запускается через реальный кабинет» (см. CLAUDE.md) — вызывается
-// consumer'ами профиля (visualGenerator.ts, reelsVideoGenerator.ts), не
-// отдельной кнопкой в сайдбаре. Референсы клиента загружаются только один
-// раз на онбординге (нет флоу их добавления из кабинета), поэтому повторный
-// анализ на каждый клик «Сгенерировать» не дал бы новых данных — запускаем
-// автоматически только один раз, если профиля ещё нет, дальше переиспользуем
-// сохранённую версию (тот же принцип экономии, что и во всех платных
-// агентах — не звать модель повторно там, где вход не может измениться).
+// Вызывается consumer'ом профиля (reelsVideoGenerator.ts), а не кнопкой в
+// сайдбаре: у агента нет своего этапа, он вспомогательный. Собственного
+// момента запуска у него тоже нет — референсы появляются тогда, когда клиент
+// их загрузит, то есть уже после того, как сценарий рилса написан.
+//
+// Пересчёт — только при изменившемся наборе референсов: вызов платный, а на
+// неизменившемся входе модель вернула бы то же самое.
 export async function ensureVisualStyleProfile(clientId: string) {
+  const references = selectReferences(await loadReferences(clientId));
+  if (references.length === 0) return undefined;
+
   const [existing] = await db
     .select()
     .from(visualStyleProfiles)
     .where(eq(visualStyleProfiles.clientId, clientId))
     .orderBy(desc(visualStyleProfiles.version))
     .limit(1);
-  if (existing) return existing;
+  if (!isProfileOutdated(existing, references)) return existing;
 
   try {
     return await runVisualStyleAnalyzer(clientId);
   } catch (err) {
-    if (err instanceof ReferencesMissingError) return undefined;
     console.error("[agents] visual-style-analyzer (авто, вместе с генерацией промпта) failed:", err);
     return undefined;
   }

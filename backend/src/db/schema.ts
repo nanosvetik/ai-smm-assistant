@@ -164,10 +164,11 @@ export const profileHeaderProfiles = sqliteTable("profile_header_profiles", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-// Результат агента visual-style-analyzer («Визуальный style-профиль»):
-// анализ загруженных клиентом референсов, чтобы генерации не разъезжались по
-// стилю от раза к разу. Версионирование и статусы — как у
-// account_style_profiles.
+// Результат агента visual-style-analyzer («Визуальный style-профиль»): разбор
+// референсов рилса (reels_reference_files), чтобы промпт к видео опирался на
+// стиль реальных фотографий клиента. Версионирование и статусы — как у
+// account_style_profiles. Колонки с категориями здесь нет: у референсов рилса
+// одна зона загрузки без разбиения (см. reels_reference_files).
 export const visualStyleProfiles = sqliteTable("visual_style_profiles", {
   id: text("id").primaryKey(),
   clientId: text("client_id")
@@ -176,7 +177,6 @@ export const visualStyleProfiles = sqliteTable("visual_style_profiles", {
   version: integer("version").notNull(),
   status: text("status", { enum: ["боевой", "черновик-скелет"] }).notNull(),
   referencesAnalyzed: integer("references_analyzed").notNull(),
-  categories: text("categories").notNull(),
   documentMarkdown: text("document_markdown").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });

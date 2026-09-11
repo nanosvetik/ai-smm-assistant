@@ -1,0 +1,1 @@
+ALTER TABLE `visual_style_profiles` DROP COLUMN `categories`;

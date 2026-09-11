@@ -73,8 +73,9 @@ export function submitOnboarding(data: {
 
 // Референсы, добавляемые на странице рилса после того, как сценарий уже
 // написан — отдельно от онбординга (см. CLAUDE.md). Одна зона загрузки, без
-// категорий. Пока только хранение — не используются ни visual-style-analyzer,
-// ни в generate_video.
+// категорий. Единственный живой источник фотографий клиента: самое свежее
+// уходит видео-модели первым кадром, весь набор разбирает
+// visual-style-analyzer.
 export interface ReelsReferenceFile {
   id: string;
   filePath: string;
