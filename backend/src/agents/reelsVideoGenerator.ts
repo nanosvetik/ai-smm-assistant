@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { reelsReferenceFiles, reelsScripts, reelsVideoPrompts } from "../db/schema.js";
+import { reelsScripts, reelsVideoPrompts } from "../db/schema.js";
 import { chatCompletion } from "../lib/openrouter.js";
 import { replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { ensureVisualStyleProfile } from "./visualStyleAnalyzer.js";
+import { loadReelsReferences } from "./reelsReferenceSet.js";
 import { generateId } from "../lib/tokens.js";
 import { promptPath } from "../lib/paths.js";
 
@@ -27,6 +28,22 @@ function weakestStatus(statuses: Status[]): Status {
   return statuses.reduce((weakest, s) => (STATUS_RANK[s] < STATUS_RANK[weakest] ? s : weakest));
 }
 
+// Промпт к видео пишет текстовая модель — самой фотографии она не получает.
+// Что на стартовом кадре, ей известно только из раздела «Стартовый кадр»
+// визуального style-профиля: его пишет visual-style-analyzer, единственный
+// агент конвейера с глазами. Если профиля нет (анализ не удался), знания о
+// кадре нет вообще — и тогда честнее велеть не выдумывать сцену, чем
+// получить промпт про телефон в руках поверх скриншота с котятами.
+function referenceFrameContext(hasReferenceImage: boolean, hasVisualProfile: boolean): string {
+  if (!hasReferenceImage) {
+    return "Референса нет — работай по нейтральному визуальному описанию хука (см. Шаг 1).";
+  }
+  if (hasVisualProfile) {
+    return "Клиент загрузил фотографию — она уйдёт видео-модели первым кадром. Что на ней, описано выше, в разделе «Стартовый кадр» визуального style-профиля. Движение обязано продолжать именно эту сцену (см. Шаг 1).";
+  }
+  return "Клиент загрузил фотографию — она уйдёт видео-модели первым кадром, но описания кадра нет. Опиши только движение камеры, света и общее развитие сцены, не утверждая, что именно находится в кадре (см. Шаг 1).";
+}
+
 function buildContext(
   script: typeof reelsScripts.$inferSelect,
   visualProfile: Awaited<ReturnType<typeof ensureVisualStyleProfile>>,
@@ -43,11 +60,7 @@ ${
 }
 
 # Референсный кадр
-${
-  hasReferenceImage
-    ? "Клиент загрузил реальную фотографию для рилса — она будет передана видео-модели напрямую как первый кадр. Не описывай в промпте, что на ней изображено, — опиши только действие/движение, которое начинается из этого кадра (см. Шаг 1)."
-    : "Референса нет — работай по нейтральному визуальному описанию хука (см. Шаг 1)."
-}
+${referenceFrameContext(hasReferenceImage, Boolean(visualProfile))}
 `;
 }
 
@@ -67,12 +80,9 @@ export async function runReelsVideoGenerator(clientId: string) {
 
   const visualProfile = await ensureVisualStyleProfile(clientId);
 
-  const [reference] = await db
-    .select({ id: reelsReferenceFiles.id })
-    .from(reelsReferenceFiles)
-    .where(eq(reelsReferenceFiles.clientId, clientId))
-    .orderBy(desc(reelsReferenceFiles.createdAt))
-    .limit(1);
+  // Та же выборка, что у visual-style-analyzer и videoGenerator: важно не
+  // «есть ли вообще файлы», а есть ли тот самый стартовый кадр.
+  const [reference] = await loadReelsReferences(clientId);
 
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
   const userMessage = buildContext(script, visualProfile, Boolean(reference));

@@ -1,9 +1,10 @@
 import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { generatedVideos, reelsReferenceFiles, reelsVideoPrompts } from "../db/schema.js";
+import { generatedVideos, reelsVideoPrompts } from "../db/schema.js";
 import { extractPromptBlock } from "../lib/promptBlock.js";
 import { generateVideoFile } from "../lib/videoGeneration.js";
+import { loadReelsReferences } from "./reelsReferenceSet.js";
 import { generateId } from "../lib/tokens.js";
 import { UPLOAD_ROOT } from "../lib/paths.js";
 
@@ -40,16 +41,12 @@ export async function runVideoGenerator(clientId: string) {
     throw new PromptNotFoundError();
   }
 
-  // Самый свежий загруженный референс рилса (если есть) — отправляется
-  // модели как первый кадр (см. videoGeneration.ts). Один референс на клип,
-  // без выбора конкретного файла в UI — тот же принцип, что и с
-  // единственным сценарием рилса на клиента.
-  const [reference] = await db
-    .select()
-    .from(reelsReferenceFiles)
-    .where(eq(reelsReferenceFiles.clientId, clientId))
-    .orderBy(desc(reelsReferenceFiles.createdAt))
-    .limit(1);
+  // Стартовый кадр клипа — первый в общей выборке референсов рилса
+  // (reelsReferenceSet.ts). Выбор намеренно общий с visual-style-analyzer:
+  // тот описывает этот же кадр, и промпт строится вокруг его содержимого.
+  // Один референс на клип, без выбора конкретного файла в UI — тот же
+  // принцип, что и с единственным сценарием рилса на клиента.
+  const [reference] = await loadReelsReferences(clientId);
   const referenceImagePath = reference ? path.join(UPLOAD_ROOT, ...reference.filePath.split("/")) : undefined;
 
   const generated = await generateVideoFile(prompt, referenceImagePath);

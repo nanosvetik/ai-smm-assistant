@@ -3,10 +3,11 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { reelsReferenceFiles, visualStyleProfiles } from "../db/schema.js";
-import { chatCompletion, type ChatMessage, type ImageContentBlock } from "../lib/openrouter.js";
+import { visualStyleProfiles } from "../db/schema.js";
+import { chatCompletion, type ChatMessage, type ImageContentBlock, type TextContentBlock } from "../lib/openrouter.js";
 import { parseFrontmatter, replaceFrontmatterField, stampFrontmatterDates } from "../lib/frontmatter.js";
 import { generateId } from "../lib/tokens.js";
+import { loadReelsReferences, mimeTypeForReference } from "./reelsReferenceSet.js";
 import { promptPath, UPLOAD_ROOT } from "../lib/paths.js";
 
 // Здесь модель дороже, чем у текстовых агентов, и на то две причины.
@@ -15,6 +16,11 @@ import { promptPath, UPLOAD_ROOT } from "../lib/paths.js";
 // альтернатива требует разрешить провайдеру обучение на входных данных, что
 // для личных фотографий неприемлемо. Операция редкая — один раз на набор
 // референсов, — поэтому цена терпима.
+//
+// Это единственный агент конвейера, который видит фотографии клиента. Промпт
+// к видео пишет текстовая модель, поэтому описание стартового кадра отсюда —
+// её единственный источник знания о том, что в кадре (см. Шаг 0 промпта и
+// reelsVideoGenerator.ts).
 const MODEL = "anthropic/claude-sonnet-5";
 const PROMPT_PATH = promptPath("visual-style-analyzer.md");
 
@@ -22,17 +28,6 @@ const STATUSES = ["боевой", "черновик-скелет"] as const;
 // Ниже — не строим уверенный "фирменный стиль" на случайном кадре
 // (см. prompts/visual-style-analyzer.md, "Вход").
 const MIN_REFERENCES_FOR_BOEVOY = 3;
-// Потолок бережёт токены и цену. Референсы собираются под один рилс, так что
-// десятка кадров с запасом хватает, чтобы увидеть общее.
-const MAX_REFERENCES = 10;
-
-const MIME_TYPES: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-};
 
 export class ReferencesMissingError extends Error {
   constructor() {
@@ -40,27 +35,8 @@ export class ReferencesMissingError extends Error {
   }
 }
 
-// Свежие первыми: если клиент загрузил больше потолка, разбираем последние
-// добавленные — они подобраны под тот же сценарий, что и кадр, который уйдёт
-// в видео первым (см. videoGenerator.ts).
-function loadReferences(clientId: string) {
-  return db
-    .select()
-    .from(reelsReferenceFiles)
-    .where(eq(reelsReferenceFiles.clientId, clientId))
-    .orderBy(desc(reelsReferenceFiles.createdAt));
-}
-
-function selectReferences(references: (typeof reelsReferenceFiles.$inferSelect)[]) {
-  return references
-    .filter((ref) => MIME_TYPES[path.extname(ref.filePath).toLowerCase()])
-    .slice(0, MAX_REFERENCES);
-}
-
-async function buildImageBlock(ref: typeof reelsReferenceFiles.$inferSelect): Promise<ImageContentBlock> {
-  const mimeType = MIME_TYPES[path.extname(ref.filePath).toLowerCase()];
-  const filePath = path.join(UPLOAD_ROOT, ...ref.filePath.split("/"));
-  const bytes = await readFile(filePath);
+async function buildImageBlock(filePath: string, mimeType: string): Promise<ImageContentBlock> {
+  const bytes = await readFile(path.join(UPLOAD_ROOT, ...filePath.split("/")));
   return { type: "image_url", image_url: { url: `data:${mimeType};base64,${bytes.toString("base64")}` } };
 }
 
@@ -69,7 +45,7 @@ async function buildImageBlock(ref: typeof reelsReferenceFiles.$inferSelect): Pr
 // загружал один раз и больше не трогал. Референсы рилса живут иначе — их
 // добавляют и удаляют прямо перед генерацией видео, уже глядя на сценарий.
 // Сохранённый профиль описывал бы стиль фотографий, которых у клиента может
-// уже не быть.
+// уже не быть, а его описание стартового кадра — вообще другой кадр.
 export function isProfileOutdated(
   profile: { referencesAnalyzed: number; createdAt: Date } | undefined,
   references: { createdAt: Date }[]
@@ -80,19 +56,31 @@ export function isProfileOutdated(
 }
 
 export async function runVisualStyleAnalyzer(clientId: string) {
-  const selected = selectReferences(await loadReferences(clientId));
+  const selected = await loadReelsReferences(clientId);
   if (selected.length === 0) {
     throw new ReferencesMissingError();
   }
 
   const systemPrompt = readFileSync(PROMPT_PATH, "utf8");
-  const imageBlocks = await Promise.all(selected.map(buildImageBlock));
+
+  // Первый референс помечается явно: именно он уйдёт видео-модели стартовым
+  // кадром, и именно его агент описывает отдельным разделом. Порядок задан
+  // общей выборкой (reelsReferenceSet.ts), а не этим циклом.
+  const imageBlocks = await Promise.all(
+    selected.map(async (ref, index): Promise<(TextContentBlock | ImageContentBlock)[]> => [
+      {
+        type: "text",
+        text: index === 0 ? "Стартовый кадр — именно с него начнётся видео:" : `Ещё один референс (${index + 1}):`,
+      },
+      await buildImageBlock(ref.filePath, mimeTypeForReference(ref)),
+    ])
+  );
 
   const userMessage: ChatMessage = {
     role: "user",
     content: [
-      { type: "text", text: `Референсов на входе: ${selected.length}. Разбери визуальный стиль по шагам промпта.` },
-      ...imageBlocks,
+      { type: "text", text: `Референсов на входе: ${selected.length}. Разбери их по шагам промпта.` },
+      ...imageBlocks.flat(),
     ],
   };
 
@@ -144,7 +132,7 @@ export async function runVisualStyleAnalyzer(clientId: string) {
 // Пересчёт — только при изменившемся наборе референсов: вызов платный, а на
 // неизменившемся входе модель вернула бы то же самое.
 export async function ensureVisualStyleProfile(clientId: string) {
-  const references = selectReferences(await loadReferences(clientId));
+  const references = await loadReelsReferences(clientId);
   if (references.length === 0) return undefined;
 
   const [existing] = await db
