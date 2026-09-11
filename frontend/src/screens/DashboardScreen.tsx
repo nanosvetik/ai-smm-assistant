@@ -6,17 +6,20 @@ import {
   getResultsLink,
   runAgent,
   type AgentResult,
+  type OnboardingState,
   type Platform,
   type ResultsLink,
 } from "../lib/api";
 import { STAGES, type StageConfig } from "../lib/stages";
 import { buildStageProgress, isStageDone, type StageResult } from "../lib/stageProgress";
+import { resolveOnboardingEdit, type OnboardingEditState } from "../lib/onboardingEdit";
 import { AppHeader } from "../components/AppHeader";
 import { Sidebar, type StageProgress } from "../components/Sidebar";
 import { StagePanel } from "../components/StagePanel";
 import "./DashboardScreen.css";
 
 type LoadState = "loading" | "no_session" | "load_failed" | "ready";
+type OnboardingSnapshot = Pick<OnboardingState, "questionnaire" | "ownLinks">;
 
 function requestBody(stage: StageConfig, platform?: Platform): Record<string, unknown> | undefined {
   if (stage.key === "copywriter") return { platform, day: 1 };
@@ -27,6 +30,10 @@ function requestBody(stage: StageConfig, platform?: Platform): Record<string, un
 export function DashboardScreen() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [platforms, setPlatforms] = useState<Platform[]>([]);
+  // Анкета нужна целиком, а не только площадками: пустой опросник и пустые
+  // «свои соцсети» — разные поводы звать клиента обратно в форму (см.
+  // lib/onboardingEdit.ts).
+  const [onboarding, setOnboarding] = useState<OnboardingSnapshot | null>(null);
   const [results, setResults] = useState<Record<string, StageResult>>({});
   const [secondaryResults, setSecondaryResults] = useState<Record<string, AgentResult | null>>({});
   // Этапы, состояние которых узнать не удалось. Отличать их от «не запускали»
@@ -44,6 +51,7 @@ export function DashboardScreen() {
       .then(async (onboarding) => {
         const clientPlatforms = [...new Set(onboarding.ownLinks.map((l) => l.platform))];
         setPlatforms(clientPlatforms);
+        setOnboarding({ questionnaire: onboarding.questionnaire, ownLinks: onboarding.ownLinks });
 
         const stages = STAGES.filter((s) => !s.vkOnly || clientPlatforms.includes("vk"));
         const failed = new Set<string>();
@@ -196,6 +204,11 @@ export function DashboardScreen() {
   const progress: Record<string, StageProgress> = buildStageProgress(visibleStages, results, platforms, failedStages);
 
   const activeStage = visibleStages.find((s) => s.key === activeKey) ?? visibleStages[0];
+  // Считается на каждый рендер, а не один раз при загрузке: первый же
+  // запущенный этап закрывает бесплатную правку анкеты.
+  const onboardingEdit: OnboardingEditState = onboarding
+    ? resolveOnboardingEdit(onboarding, visibleStages, results, failedStages)
+    : "hidden";
 
   return (
     <>
@@ -207,6 +220,7 @@ export function DashboardScreen() {
           activeKey={activeStage.key}
           onSelect={handleSelectStage}
           resultsUrl={resultsLink?.url ?? null}
+          onboardingEdit={onboardingEdit}
         />
         <StagePanel
           stage={activeStage}

@@ -157,3 +157,29 @@
   flex: 0 0 auto;
   font-size: 14px;
 }
+
+/* Тихий вход обратно в анкету: показывается, только пока правка ещё на
+   что-то влияет (см. lib/onboardingEdit.ts), и намеренно не спорит по
+   заметности ни с этапами, ни со ссылкой на результаты. */
+.sidebar-onboarding-edit {
+  margin-top: 20px;
+  padding: 0 14px;
+}
+
+.sidebar-onboarding-edit-link {
+  font-size: 14px;
+  color: var(--color-muted-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sidebar-onboarding-edit-link:hover {
+  color: var(--color-plum);
+}
+
+.sidebar-onboarding-edit-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted);
+}

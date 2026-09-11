@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { StageConfig } from "../lib/stages";
+import type { OnboardingEditState } from "../lib/onboardingEdit";
 import "./Sidebar.css";
 
 export type StageProgress = "done" | "current" | "future";
@@ -13,6 +14,9 @@ interface SidebarProps {
   // только в блоке наверху страницы: документы этапов длинные, и с середины
   // рилса верх экрана не виден — а сайдбар едет вместе с прокруткой.
   resultsUrl?: string | null;
+  // Звать ли обратно в анкету и нужна ли оговорка о невозвратности
+  // (см. lib/onboardingEdit.ts). "hidden" — ссылки нет вовсе.
+  onboardingEdit?: OnboardingEditState;
 }
 
 // Три смысловых блока конвейера (разбор → стратегия → готовый контент,
@@ -29,7 +33,14 @@ const GROUP_BREAK_AFTER = new Set(["competitor-analyzer", "content-planner"]);
 // затемнение в разметке есть
 // всегда, видимость переключается через CSS-медиазапрос (не JS matchMedia) —
 // проще и не требует ресайз-слушателя.
-export function Sidebar({ stages, progress, activeKey, onSelect, resultsUrl }: SidebarProps) {
+export function Sidebar({
+  stages,
+  progress,
+  activeKey,
+  onSelect,
+  resultsUrl,
+  onboardingEdit = "hidden",
+}: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const activeStage = stages.find((s) => s.key === activeKey);
 
@@ -85,6 +96,18 @@ export function Sidebar({ stages, progress, activeKey, onSelect, resultsUrl }: S
           </span>
           <span>Смотреть результаты</span>
         </a>
+      )}
+      {onboardingEdit !== "hidden" && (
+        <div className="sidebar-onboarding-edit">
+          <a className="sidebar-onboarding-edit-link" href="/onboarding">
+            Изменить анкету
+          </a>
+          {onboardingEdit === "stuck" && (
+            <p className="sidebar-onboarding-edit-note">
+              Документы, которые уже готовы, не пересоберутся — правка повлияет только на следующие этапы.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
