@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import { ApiError, type AgentResult, type Platform, type ResultsLink } from "../lib/api";
 import { PLATFORM_LABELS, describeMissing, describePermanentError, type StageConfig } from "../lib/stages";
 import { stripFrontmatter } from "../lib/markdown";
+import { ACCOUNT_ANALYZER_KEY, foundNoPosts } from "../lib/accountAnalysis";
 import { parseContentPlanData } from "../lib/planData";
 import { copyText } from "../lib/clipboard";
 import { downloadBlob } from "../lib/download";
@@ -140,6 +141,29 @@ function StatusLine({ result, showDraftNote = true }: { result: AgentResult; sho
   );
 }
 
+// Этап прошёл, но постов не нашлось — почти всегда дело в ссылке, и сказать
+// об этом нужно здесь: молча собранный из пустоты документ ляжет в основу всей
+// остальной цепочки. Ссылка на анкету стоит прямо в сообщении, а не только в
+// сайдбаре: на узком экране сайдбар свёрнут в полоску, и тихую ссылку внизу
+// него человек в этот момент не увидит.
+function NoPostsWarning() {
+  return (
+    <div className="stage-status-warning">
+      <p>По вашей ссылке не нашлось ни одного поста — разбирать было нечего, документ ниже собран почти из пустоты.</p>
+      <div className="stage-status-warning-detail">
+        <p>
+          Чаще всего дело в адресе: опечатка в имени канала, личная страница вместо канала или сообщества, закрытый
+          профиль — всё это выглядит как рабочая ссылка. Проверьте её, пока на этом документе не построились
+          следующие этапы.
+        </p>
+        <a className="stage-status-warning-link" href="/onboarding">
+          Изменить анкету
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function RunBlock({
   stage,
   result,
@@ -187,6 +211,7 @@ function RunBlock({
       {result ? (
         <>
           <StatusLine result={result} showDraftNote={showDraftNote} />
+          {stage.key === ACCOUNT_ANALYZER_KEY && foundNoPosts(result) && <NoPostsWarning />}
           <DocumentBody stage={stage} result={result} />
         </>
       ) : !isRunning ? (

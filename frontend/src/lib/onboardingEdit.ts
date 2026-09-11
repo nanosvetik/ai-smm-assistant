@@ -1,4 +1,5 @@
 import type { AgentResult, OnboardingState, Platform } from "./api";
+import { accountAnalysisFoundNoPosts } from "./accountAnalysis";
 import type { StageResult } from "./stageProgress";
 import type { StageConfig } from "./stages";
 
@@ -9,9 +10,10 @@ import type { StageConfig } from "./stages";
 // ещё на что-то повлияет:
 //
 // free   — не запущено ни одного этапа: правка бесплатна и действует целиком.
-// stuck  — что-то уже сгенерировано, но без своих площадок конвейер дальше не
-//          едет; правка нужна, но прошлые документы не пересоберутся — об этом
-//          говорим прямо.
+// stuck  — что-то уже сгенерировано, но данные анкеты не дают ехать дальше:
+//          своих площадок нет вовсе либо по указанной ссылке не нашлось ни
+//          одного поста. Правка нужна, но прошлые документы не пересоберутся —
+//          об этом говорим прямо.
 // hidden — анкета полная и работа идёт: правка уже ничего не изменит, и
 //          звать на неё значило бы обманывать.
 export type OnboardingEditState = "free" | "stuck" | "hidden";
@@ -41,5 +43,9 @@ export function resolveOnboardingEdit(
   const anyStarted = unknownKeys.size > 0 || stages.some((stage) => hasAnyResult(stage, results[stage.key]));
   if (!anyStarted) return "free";
 
-  return onboarding.ownLinks.length === 0 ? "stuck" : "hidden";
+  // Пустой список площадок — тупик по анкете; ноль разобранных постов —
+  // тупик по существу: этап прошёл, но разбирать было нечего, и всё
+  // дальнейшее построится на пустом документе.
+  const stuck = onboarding.ownLinks.length === 0 || accountAnalysisFoundNoPosts(results);
+  return stuck ? "stuck" : "hidden";
 }

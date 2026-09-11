@@ -230,3 +230,12 @@
   color: #a13b3b;
   margin-top: 12px;
 }
+
+.stage-status-warning-link {
+  display: inline-block;
+  margin-top: 4px;
+  font-weight: 600;
+  color: #7a3030;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

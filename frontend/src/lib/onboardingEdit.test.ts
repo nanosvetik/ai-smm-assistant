@@ -53,6 +53,15 @@ describe("resolveOnboardingEdit", () => {
     expect(resolveOnboardingEdit({ questionnaire, ownLinks: [] }, STAGES, results)).toBe("stuck");
   });
 
+  it("зовёт в анкету, когда площадка указана, а постов по ней не нашлось", () => {
+    // Битая ссылка на Telegram этап не роняет: t.me отвечает 200 и пустой
+    // страницей. Без этой ветки человек узнавал бы о проблеме из строки
+    // «постов: 0» и не имел пути назад в анкету.
+    const noPosts = { status: "черновик-скелет", postsAnalyzed: 0 } as unknown as AgentResult;
+    const results: Record<string, StageResult> = { "account-analyzer": noPosts };
+    expect(resolveOnboardingEdit({ questionnaire, ownLinks: [link] }, STAGES, results)).toBe("stuck");
+  });
+
   it("не предупреждает, если без площадок ещё ничего не запускали", () => {
     expect(resolveOnboardingEdit({ questionnaire, ownLinks: [] }, STAGES, {})).toBe("free");
   });
